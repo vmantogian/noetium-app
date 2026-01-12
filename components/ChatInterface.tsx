@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import ReactMarkdown from 'react-markdown'
+import Logo from '@/components/Logo'
 import type { User } from '@supabase/supabase-js'
 
 interface Message {
@@ -138,17 +139,17 @@ export default function ChatInterface({ user }: { user: User }) {
   const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Μαθητής'
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-[#191308]">
       {/* Sidebar */}
-      <aside className={`${showSidebar ? 'w-64' : 'w-0'} bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-all duration-300 overflow-hidden flex flex-col`}>
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">🎓</span>
-            <span className="text-xl font-bold text-primary-600">Noetium</span>
+      <aside className={`${showSidebar ? 'w-64' : 'w-0'} bg-[#1E1E24] border-r border-[#454551] transition-all duration-300 overflow-hidden flex flex-col`}>
+        <div className="p-4 border-b border-[#454551]">
+          <div className="flex items-center gap-3 mb-4">
+            <Logo size={32} />
+            <span className="text-xl font-heading font-semibold text-white">Noetium</span>
           </div>
           <button
             onClick={clearChat}
-            className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#4EA6DC] to-[#113285] hover:from-[#87F1FF] hover:to-[#4EA6DC] text-white py-2 px-4 rounded-lg transition-all font-body"
           >
             <span>+</span>
             <span>Νέα Συνομιλία</span>
@@ -156,15 +157,15 @@ export default function ChatInterface({ user }: { user: User }) {
         </div>
 
         {/* Subject Filter */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Μάθημα</p>
+        <div className="p-4 border-b border-[#454551]">
+          <p className="text-sm font-body font-medium text-[#D8D9DC] mb-2">Μάθημα</p>
           <div className="space-y-1">
             <button
               onClick={() => setSubject(null)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors font-body ${
                 !subject 
-                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' 
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  ? 'bg-[#4EA6DC]/20 text-[#87F1FF] border border-[#4EA6DC]/30' 
+                  : 'hover:bg-[#454551]/50 text-[#D8D9DC]'
               }`}
             >
               📚 Όλα τα μαθήματα
@@ -173,10 +174,10 @@ export default function ChatInterface({ user }: { user: User }) {
               <button
                 key={s.id}
                 onClick={() => setSubject(s.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors font-body ${
                   subject === s.id 
-                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' 
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                    ? 'bg-[#4EA6DC]/20 text-[#87F1FF] border border-[#4EA6DC]/30' 
+                    : 'hover:bg-[#454551]/50 text-[#D8D9DC]'
                 }`}
               >
                 {s.emoji} {s.name}
@@ -186,22 +187,22 @@ export default function ChatInterface({ user }: { user: User }) {
         </div>
 
         {/* User Section */}
-        <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-700">
+        <div className="mt-auto p-4 border-t border-[#454551]">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-              <span className="text-primary-600 dark:text-primary-400 font-medium">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#E32D91] to-[#C830CC] rounded-full flex items-center justify-center">
+              <span className="text-white font-body font-medium text-sm">
                 {userName[0].toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+              <p className="text-sm font-body font-medium text-white truncate">
                 {userName}
               </p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            className="w-full text-left px-3 py-2 rounded-lg text-sm text-[#D8D9DC] hover:bg-[#454551]/50 transition-colors font-body"
           >
             Αποσύνδεση
           </button>
@@ -211,16 +212,16 @@ export default function ChatInterface({ user }: { user: User }) {
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center px-4">
+        <header className="h-14 bg-[#1E1E24] border-b border-[#454551] flex items-center px-4">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg mr-2"
+            className="p-2 hover:bg-[#454551]/50 rounded-lg mr-2 transition-colors"
           >
-            <svg className="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-[#D8D9DC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <h1 className="font-medium text-slate-900 dark:text-white">
+          <h1 className="font-heading font-semibold text-white">
             {subject ? SUBJECTS.find(s => s.id === subject)?.name : 'Ρώτα ό,τι θέλεις'}
           </h1>
         </header>
@@ -229,11 +230,11 @@ export default function ChatInterface({ user }: { user: User }) {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
-              <span className="text-6xl mb-4">🎓</span>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              <Logo size={80} className="mb-4" />
+              <h2 className="text-2xl font-heading font-semibold text-white mb-2">
                 Γεια σου, {userName}!
               </h2>
-              <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md">
+              <p className="text-[#D8D9DC] mb-8 max-w-md font-body">
                 Είμαι ο Noetium, ο έξυπνος βοηθός για τα μαθήματά σου. 
                 Ρώτησέ με οτιδήποτε από Φυσική, Μαθηματικά, Χημεία και άλλα!
               </p>
@@ -247,7 +248,7 @@ export default function ChatInterface({ user }: { user: User }) {
                   <button
                     key={i}
                     onClick={() => setInput(suggestion)}
-                    className="text-left p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-primary-300 dark:hover:border-primary-600 transition-colors text-sm text-slate-700 dark:text-slate-300"
+                    className="text-left p-3 bg-[#1E1E24] border border-[#454551] rounded-xl hover:border-[#4EA6DC] transition-all text-sm text-[#D8D9DC] font-body hover:-translate-y-0.5"
                   >
                     {suggestion}
                   </button>
@@ -264,27 +265,27 @@ export default function ChatInterface({ user }: { user: User }) {
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                   message.role === 'user'
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white'
+                    ? 'bg-gradient-to-r from-[#E32D91] to-[#C830CC] text-white'
+                    : 'bg-[#1E1E24] border border-[#454551] text-white'
                 }`}
               >
                 {message.role === 'assistant' ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <div className="prose prose-sm prose-invert max-w-none font-body">
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                 ) : (
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  <p className="whitespace-pre-wrap font-body">{message.content}</p>
                 )}
 
                 {/* Sources */}
                 {message.sources && message.sources.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">📚 Πηγές:</p>
+                  <div className="mt-3 pt-3 border-t border-[#454551]">
+                    <p className="text-xs text-[#D8D9DC] mb-1 font-body">📚 Πηγές:</p>
                     <div className="flex flex-wrap gap-1">
                       {message.sources.slice(0, 3).map((source, i) => (
                         <span
                           key={i}
-                          className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded"
+                          className="text-xs bg-[#191308] text-[#87F1FF] px-2 py-1 rounded font-body"
                         >
                           {source.title}
                         </span>
@@ -299,11 +300,11 @@ export default function ChatInterface({ user }: { user: User }) {
           {/* Loading indicator */}
           {loading && (
             <div className="flex justify-start message-fade-in">
-              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3">
+              <div className="bg-[#1E1E24] border border-[#454551] rounded-2xl px-4 py-3">
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div>
-                  <div className="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div>
-                  <div className="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div>
+                  <div className="w-2 h-2 bg-[#4EA6DC] rounded-full typing-dot"></div>
+                  <div className="w-2 h-2 bg-[#4EA6DC] rounded-full typing-dot"></div>
+                  <div className="w-2 h-2 bg-[#4EA6DC] rounded-full typing-dot"></div>
                 </div>
               </div>
             </div>
@@ -313,7 +314,7 @@ export default function ChatInterface({ user }: { user: User }) {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+        <div className="p-4 bg-[#1E1E24] border-t border-[#454551]">
           <div className="max-w-4xl mx-auto relative">
             <textarea
               ref={inputRef}
@@ -321,21 +322,21 @@ export default function ChatInterface({ user }: { user: User }) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Γράψε την ερώτησή σου..."
-              className="w-full px-4 py-3 pr-12 bg-slate-100 dark:bg-slate-700 border-0 rounded-xl resize-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-white placeholder-slate-400"
+              className="w-full px-4 py-3 pr-12 bg-[#191308] border border-[#454551] rounded-xl resize-none focus:ring-2 focus:ring-[#4EA6DC] focus:border-transparent text-white placeholder-[#454551] font-body"
               rows={1}
               disabled={loading}
             />
             <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
-              className="absolute right-2 bottom-2 p-2 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white rounded-lg transition-colors"
+              className="absolute right-2 bottom-2 p-2 bg-gradient-to-r from-[#E32D91] to-[#C830CC] hover:from-[#C830CC] hover:to-[#E32D91] disabled:from-[#454551] disabled:to-[#454551] text-white rounded-lg transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </button>
           </div>
-          <p className="text-center text-xs text-slate-400 mt-2">
+          <p className="text-center text-xs text-[#454551] mt-2 font-body">
             Το Noetium μπορεί να κάνει λάθη. Επαλήθευε τις απαντήσεις.
           </p>
         </div>

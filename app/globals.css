@@ -2,31 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&display=swap');
+/* Import fonts - Segoe UI is system font, Aptos fallback to system */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 250, 250, 252;
-  --background-end-rgb: 255, 255, 255;
+  /* Brand Colors */
+  --color-cyan-light: #87F1FF;
+  --color-cyan: #4EA6DC;
+  --color-cyan-dark: #113285;
+  --color-magenta-light: #E32D91;
+  --color-magenta: #C830CC;
+  --color-lavender: #E5D0E3;
+  --color-dark: #191308;
+  --color-silver: #D8D9DC;
+  --color-slate: #454551;
+  
+  /* Light mode */
+  --foreground: #191308;
+  --background: #ffffff;
+  --background-secondary: #F8F9FA;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 15, 23, 42;
-    --background-end-rgb: 30, 41, 59;
+    --foreground: #D8D9DC;
+    --background: #191308;
+    --background-secondary: #1E1E24;
   }
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-  font-family: 'Inter', 'Noto Sans', system-ui, sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Aptos', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Heading styles - Segoe UI Semibold */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-weight: 600;
 }
 
 /* Custom scrollbar */
@@ -35,17 +55,17 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--color-silver);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--color-slate);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+  background: var(--color-cyan);
 }
 
 /* Chat message animations */
@@ -84,4 +104,49 @@ body {
 
 .typing-dot:nth-child(3) {
   animation-delay: 0.4s;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-cyan-light) 0%, var(--color-magenta) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Button styles */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-cyan-dark) 100%);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-cyan-light) 0%, var(--color-cyan) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(78, 166, 220, 0.3);
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, var(--color-magenta-light) 0%, var(--color-magenta) 100%);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(200, 48, 204, 0.3);
+}
+
+/* Card styles */
+.card {
+  background: var(--background);
+  border: 1px solid var(--color-silver);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: var(--color-cyan);
+  box-shadow: 0 10px 40px rgba(78, 166, 220, 0.15);
 }

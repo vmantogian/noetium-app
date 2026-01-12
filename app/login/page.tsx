@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import Logo from '@/components/Logo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -52,30 +53,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#191308]">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <span className="text-4xl">🎓</span>
-            <span className="text-3xl font-bold text-primary-600">Noetium</span>
+          <Link href="/" className="inline-flex flex-col items-center gap-3">
+            <Logo size={60} />
+            <span className="text-2xl font-heading font-semibold text-white">Noetium</span>
           </Link>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">
+          <p className="text-[#D8D9DC] mt-2 font-body">
             Καλώς ήρθες πίσω!
           </p>
         </div>
 
         {/* Form */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8">
+        <div className="bg-[#1E1E24] rounded-2xl border border-[#454551] p-8">
           <form onSubmit={handleLogin} className="space-y-5">
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
+              <div className="bg-[#E32D91]/10 border border-[#E32D91]/30 text-[#E32D91] p-3 rounded-lg text-sm font-body">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="email" className="block text-sm font-body font-medium text-[#D8D9DC] mb-1">
                 Email
               </label>
               <input
@@ -83,14 +84,14 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-lg border border-[#454551] bg-[#191308] text-white placeholder-[#454551] focus:ring-2 focus:ring-[#4EA6DC] focus:border-transparent transition-all font-body"
                 placeholder="you@example.com"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="password" className="block text-sm font-body font-medium text-[#D8D9DC] mb-1">
                 Κωδικός
               </label>
               <input
@@ -98,7 +99,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-lg border border-[#454551] bg-[#191308] text-white placeholder-[#454551] focus:ring-2 focus:ring-[#4EA6DC] focus:border-transparent transition-all font-body"
                 placeholder="••••••••"
                 required
               />
@@ -107,7 +108,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white py-3 rounded-lg font-medium transition-colors"
+              className="w-full bg-gradient-to-r from-[#4EA6DC] to-[#113285] hover:from-[#87F1FF] hover:to-[#4EA6DC] disabled:from-[#454551] disabled:to-[#454551] text-white py-3 rounded-lg font-body font-medium transition-all"
             >
               {loading ? 'Σύνδεση...' : 'Σύνδεση'}
             </button>
@@ -115,16 +116,16 @@ export default function LoginPage() {
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+              <div className="w-full border-t border-[#454551]"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-slate-800 text-slate-500">ή</span>
+              <span className="px-2 bg-[#1E1E24] text-[#454551] font-body">ή</span>
             </div>
           </div>
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-3 rounded-lg font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-3 bg-[#191308] border border-[#454551] hover:border-[#4EA6DC] text-[#D8D9DC] py-3 rounded-lg font-body font-medium transition-all"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -135,9 +136,9 @@ export default function LoginPage() {
             Σύνδεση με Google
           </button>
 
-          <p className="text-center text-slate-600 dark:text-slate-400 text-sm mt-6">
+          <p className="text-center text-[#D8D9DC] text-sm mt-6 font-body">
             Δεν έχεις λογαριασμό;{' '}
-            <Link href="/signup" className="text-primary-600 hover:text-primary-700 font-medium">
+            <Link href="/signup" className="text-[#87F1FF] hover:text-[#4EA6DC] font-medium">
               Κάνε εγγραφή
             </Link>
           </p>
