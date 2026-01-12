@@ -16,7 +16,7 @@ interface Message {
 }
 
 interface Source {
-  title: string
+  bookName: string
   similarity: number
 }
 
@@ -35,11 +35,21 @@ export default function ChatInterface({ user }: { user: User }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [subject, setSubject] = useState<string | null>(null)
-  const [showSidebar, setShowSidebar] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(false) // Hidden by default on mobile
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
   const supabase = createClient()
+
+  // Check screen size for sidebar default state
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setShowSidebar(window.innerWidth >= 768)
+    }
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -74,6 +84,11 @@ export default function ChatInterface({ user }: { user: User }) {
     setInput('')
     setLoading(true)
 
+    // Close sidebar on mobile after sending
+    if (window.innerWidth < 768) {
+      setShowSidebar(false)
+    }
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -99,7 +114,7 @@ export default function ChatInterface({ user }: { user: User }) {
         role: 'assistant',
         content: data.answer,
         sources: data.sources?.map((s: any) => ({
-          title: s.metadata?.source_file?.split('/').pop()?.replace('.pdf', '') || 'Πηγή',
+          bookName: s.bookName || 'Σχολικό Βιβλίο',
           similarity: s.similarity,
         })),
         timestamp: new Date(),
@@ -139,9 +154,21 @@ export default function ChatInterface({ user }: { user: User }) {
   const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Μαθητής'
 
   return (
-    <div className="flex h-screen bg-[#191308]">
+    <div className="flex h-screen bg-[#191308] overflow-hidden">
+      {/* Overlay for mobile sidebar */}
+      {showSidebar && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 md:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`${showSidebar ? 'w-64' : 'w-0'} bg-[#1E1E24] border-r border-[#454551] transition-all duration-300 overflow-hidden flex flex-col`}>
+      <aside className={`
+        fixed md:relative z-30 h-full
+        ${showSidebar ? 'w-64 translate-x-0' : 'w-0 -translate-x-full md:translate-x-0'} 
+        bg-[#1E1E24] border-r border-[#454551] transition-all duration-300 overflow-hidden flex flex-col
+      `}>
         <div className="p-4 border-b border-[#454551]">
           <div className="flex items-center gap-3 mb-4">
             <Logo size={32} />
@@ -149,7 +176,7 @@ export default function ChatInterface({ user }: { user: User }) {
           </div>
           <button
             onClick={clearChat}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#4EA6DC] to-[#113285] hover:from-[#87F1FF] hover:to-[#4EA6DC] text-white py-2 px-4 rounded-lg transition-all font-body"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#4EA6DC] to-[#113285] hover:from-[#87F1FF] hover:to-[#4EA6DC] text-white py-2 px-4 rounded-lg transition-all font-body text-sm"
           >
             <span>+</span>
             <span>Νέα Συνομιλία</span>
@@ -157,7 +184,7 @@ export default function ChatInterface({ user }: { user: User }) {
         </div>
 
         {/* Subject Filter */}
-        <div className="p-4 border-b border-[#454551]">
+        <div className="p-4 border-b border-[#454551] overflow-y-auto flex-1">
           <p className="text-sm font-body font-medium text-[#D8D9DC] mb-2">Μάθημα</p>
           <div className="space-y-1">
             <button
@@ -187,7 +214,7 @@ export default function ChatInterface({ user }: { user: User }) {
         </div>
 
         {/* User Section */}
-        <div className="mt-auto p-4 border-t border-[#454551]">
+        <div className="p-4 border-t border-[#454551]">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-8 h-8 bg-gradient-to-br from-[#E32D91] to-[#C830CC] rounded-full flex items-center justify-center">
               <span className="text-white font-body font-medium text-sm">
@@ -210,9 +237,9 @@ export default function ChatInterface({ user }: { user: User }) {
       </aside>
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-14 bg-[#1E1E24] border-b border-[#454551] flex items-center px-4">
+        <header className="h-14 bg-[#1E1E24] border-b border-[#454551] flex items-center px-4 shrink-0">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
             className="p-2 hover:bg-[#454551]/50 rounded-lg mr-2 transition-colors"
@@ -221,24 +248,24 @@ export default function ChatInterface({ user }: { user: User }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <h1 className="font-heading font-semibold text-white">
+          <h1 className="font-heading font-semibold text-white text-sm sm:text-base truncate">
             {subject ? SUBJECTS.find(s => s.id === subject)?.name : 'Ρώτα ό,τι θέλεις'}
           </h1>
         </header>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
-              <Logo size={80} className="mb-4" />
-              <h2 className="text-2xl font-heading font-semibold text-white mb-2">
+              <Logo size={60} className="mb-4 sm:w-20 sm:h-20" />
+              <h2 className="text-xl sm:text-2xl font-heading font-semibold text-white mb-2">
                 Γεια σου, {userName}!
               </h2>
-              <p className="text-[#D8D9DC] mb-8 max-w-md font-body">
+              <p className="text-sm sm:text-base text-[#D8D9DC] mb-6 sm:mb-8 max-w-md font-body">
                 Είμαι ο Noetium, ο έξυπνος βοηθός για τα μαθήματά σου. 
-                Ρώτησέ με οτιδήποτε από Φυσική, Μαθηματικά, Χημεία και άλλα!
+                Ρώτησέ με οτιδήποτε!
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 max-w-lg w-full">
                 {[
                   'Εξήγησέ μου τους νόμους του Νεύτωνα',
                   'Πώς λύνω εξισώσεις 2ου βαθμού;',
@@ -248,7 +275,7 @@ export default function ChatInterface({ user }: { user: User }) {
                   <button
                     key={i}
                     onClick={() => setInput(suggestion)}
-                    className="text-left p-3 bg-[#1E1E24] border border-[#454551] rounded-xl hover:border-[#4EA6DC] transition-all text-sm text-[#D8D9DC] font-body hover:-translate-y-0.5"
+                    className="text-left p-3 bg-[#1E1E24] border border-[#454551] rounded-xl hover:border-[#4EA6DC] transition-all text-xs sm:text-sm text-[#D8D9DC] font-body hover:-translate-y-0.5"
                   >
                     {suggestion}
                   </button>
@@ -263,31 +290,31 @@ export default function ChatInterface({ user }: { user: User }) {
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} message-fade-in`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                className={`max-w-[90%] sm:max-w-[80%] rounded-2xl px-3 sm:px-4 py-2 sm:py-3 ${
                   message.role === 'user'
                     ? 'bg-gradient-to-r from-[#E32D91] to-[#C830CC] text-white'
                     : 'bg-[#1E1E24] border border-[#454551] text-white'
                 }`}
               >
                 {message.role === 'assistant' ? (
-                  <div className="prose prose-sm prose-invert max-w-none font-body">
+                  <div className="prose prose-sm prose-invert max-w-none font-body text-sm sm:text-base">
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                 ) : (
-                  <p className="whitespace-pre-wrap font-body">{message.content}</p>
+                  <p className="whitespace-pre-wrap font-body text-sm sm:text-base">{message.content}</p>
                 )}
 
-                {/* Sources */}
+                {/* Sources with proper book names */}
                 {message.sources && message.sources.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-[#454551]">
-                    <p className="text-xs text-[#D8D9DC] mb-1 font-body">📚 Πηγές:</p>
-                    <div className="flex flex-wrap gap-1">
+                    <p className="text-xs text-[#D8D9DC] mb-2 font-body">📚 Πηγές:</p>
+                    <div className="flex flex-wrap gap-1.5">
                       {message.sources.slice(0, 3).map((source, i) => (
                         <span
                           key={i}
                           className="text-xs bg-[#191308] text-[#87F1FF] px-2 py-1 rounded font-body"
                         >
-                          {source.title}
+                          {source.bookName}
                         </span>
                       ))}
                     </div>
@@ -314,7 +341,7 @@ export default function ChatInterface({ user }: { user: User }) {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-[#1E1E24] border-t border-[#454551]">
+        <div className="p-3 sm:p-4 bg-[#1E1E24] border-t border-[#454551] shrink-0">
           <div className="max-w-4xl mx-auto relative">
             <textarea
               ref={inputRef}
@@ -322,16 +349,16 @@ export default function ChatInterface({ user }: { user: User }) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Γράψε την ερώτησή σου..."
-              className="w-full px-4 py-3 pr-12 bg-[#191308] border border-[#454551] rounded-xl resize-none focus:ring-2 focus:ring-[#4EA6DC] focus:border-transparent text-white placeholder-[#454551] font-body"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 pr-12 bg-[#191308] border border-[#454551] rounded-xl resize-none focus:ring-2 focus:ring-[#4EA6DC] focus:border-transparent text-white placeholder-[#454551] font-body text-sm sm:text-base"
               rows={1}
               disabled={loading}
             />
             <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
-              className="absolute right-2 bottom-2 p-2 bg-gradient-to-r from-[#E32D91] to-[#C830CC] hover:from-[#C830CC] hover:to-[#E32D91] disabled:from-[#454551] disabled:to-[#454551] text-white rounded-lg transition-all"
+              className="absolute right-2 bottom-1.5 sm:bottom-2 p-2 bg-gradient-to-r from-[#E32D91] to-[#C830CC] hover:from-[#C830CC] hover:to-[#E32D91] disabled:from-[#454551] disabled:to-[#454551] text-white rounded-lg transition-all"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </button>
