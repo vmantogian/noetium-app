@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
+    "framer-motion": "^12.26.2",
     "next": "14.2.22",
     "openai": "^4.77.0",
     "react": "^18.3.1",

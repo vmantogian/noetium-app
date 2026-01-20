@@ -1,321 +1,117 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import Logo from '@/components/Logo'
+'use client';
 
-const TOOL_CATEGORIES = [
-  { id: 'all', name: 'Όλα', icon: '📚' },
-  { id: 'plan', name: 'Σχεδιασμός', icon: '📋' },
-  { id: 'create', name: 'Δημιουργία', icon: '✏️' },
-  { id: 'differentiate', name: 'Διαφοροποίηση', icon: '🎯' },
-  { id: 'support', name: 'Υποστήριξη', icon: '💬' },
-  { id: 'assess', name: 'Αξιολόγηση', icon: '📊' },
-]
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 
-const TOOLS = [
-  // Planning tools
+const tools = [
   {
-    id: 'lesson-plan',
-    name: 'Σχέδιο Μαθήματος',
-    description: 'Δημιούργησε δομημένα σχέδια μαθήματος προσαρμοσμένα στις ανάγκες των μαθητών σου.',
-    icon: '📋',
-    color: '#4EA6DC',
-    category: 'plan',
-    status: 'active',
+    id: 'photo-helper',
+    href: '/tools/photo-helper',
+    title: 'Photo Helper',
+    titleEl: 'Βοηθός Φωτογραφίας',
+    description: 'Ανέβασε φωτογραφία άσκησης και πάρε καθοδήγηση βήμα-βήμα',
+    icon: '📸',
+    color: 'from-blue-500 to-cyan-500',
+    status: 'ready'
   },
   {
-    id: 'learning-objectives',
-    name: 'Μαθησιακοί Στόχοι',
-    description: 'Ανάπτυξε σαφείς, μετρήσιμους μαθησιακούς στόχους για κάθε μάθημα.',
-    icon: '🎯',
-    color: '#E32D91',
-    category: 'plan',
-    status: 'active',
-  },
-  {
-    id: 'lesson-hook',
-    name: 'Αφόρμηση Μαθήματος',
-    description: 'Σχεδίασε ελκυστικές αφορμήσεις για να κεντρίσεις το ενδιαφέρον των μαθητών.',
-    icon: '🪝',
-    color: '#C830CC',
-    category: 'plan',
-    status: 'active',
-  },
-  // Create tools
-  {
-    id: 'questions-generator',
-    name: 'Γεννήτρια Ερωτήσεων',
-    description: 'Δημιούργησε ερωτήσεις για οποιοδήποτε περιεχόμενο ή θέμα.',
-    icon: '❓',
-    color: '#87F1FF',
-    category: 'create',
-    status: 'active',
-  },
-  {
-    id: 'multiple-choice',
-    name: 'Τεστ Πολλαπλής Επιλογής',
-    description: 'Φτιάξε τεστ πολλαπλής επιλογής με αυτόματη βαθμολόγηση.',
-    icon: '☑️',
-    color: '#113285',
-    category: 'create',
-    status: 'active',
-  },
-  {
-    id: 'informational-text',
-    name: 'Ενημερωτικό Κείμενο',
-    description: 'Δημιούργησε ενημερωτικά κείμενα για διάφορα θέματα.',
-    icon: '📄',
-    color: '#4EA6DC',
-    category: 'create',
-    status: 'active',
-  },
-  {
-    id: 'discussion-prompts',
-    name: 'Θέματα Συζήτησης',
-    description: 'Φτιάξε ερεθίσματα για ουσιαστικές συζητήσεις στην τάξη.',
-    icon: '💬',
-    color: '#E32D91',
-    category: 'create',
-    status: 'active',
-  },
-  {
-    id: 'clear-directions',
-    name: 'Σαφείς Οδηγίες',
-    description: 'Δημιούργησε κατανοητές οδηγίες για δραστηριότητες και εργασίες.',
+    id: 'quiz-generator',
+    href: '/tools/quiz-generator',
+    title: 'Quiz Generator',
+    titleEl: 'Δημιουργός Quiz',
+    description: 'Ανέβασε τις σημειώσεις σου και δημιούργησε quiz για εξάσκηση',
     icon: '📝',
-    color: '#C830CC',
-    category: 'create',
-    status: 'active',
-  },
-  // Differentiate tools
-  {
-    id: 'leveler',
-    name: 'Προσαρμογή Επιπέδου',
-    description: 'Προσάρμοσε τη δυσκολία ενός κειμένου στο επίπεδο των μαθητών.',
-    icon: '📊',
-    color: '#87F1FF',
-    category: 'differentiate',
-    status: 'active',
+    color: 'from-purple-500 to-pink-500',
+    status: 'coming-soon'
   },
   {
-    id: 'text-rewriter',
-    name: 'Αναδιατύπωση Κειμένου',
-    description: 'Αναδιατύπωσε κείμενα για διαφορετικά επίπεδα ή στυλ.',
-    icon: '🔄',
-    color: '#113285',
-    category: 'differentiate',
-    status: 'active',
+    id: 'flashcards',
+    href: '/tools/flashcards',
+    title: 'Flashcards',
+    titleEl: 'Κάρτες Μνήμης',
+    description: 'Δημιούργησε κάρτες για να μάθεις ορισμούς και έννοιες',
+    icon: '🃏',
+    color: 'from-orange-500 to-red-500',
+    status: 'coming-soon'
   },
   {
-    id: 'chunk-text',
-    name: 'Τμηματοποίηση Κειμένου',
-    description: 'Χώρισε μεγάλα κείμενα σε διαχειρίσιμα τμήματα.',
-    icon: '📚',
-    color: '#4EA6DC',
-    category: 'differentiate',
-    status: 'coming-soon',
-  },
-  // Support tools
-  {
-    id: 'refresh-knowledge',
-    name: 'Ανανέωση Γνώσεων',
-    description: 'Ανανέωσε τις γνώσεις σου σε διάφορα θέματα γρήγορα.',
-    icon: '🧠',
-    color: '#E32D91',
-    category: 'support',
-    status: 'active',
-  },
-  {
-    id: 'real-world-context',
-    name: 'Πραγματικές Εφαρμογές',
-    description: 'Βρες εφαρμογές του πραγματικού κόσμου για τα μαθήματά σου.',
-    icon: '🌍',
-    color: '#C830CC',
-    category: 'support',
-    status: 'coming-soon',
-  },
-  // Assessment tools
-  {
-    id: 'rubric-generator',
-    name: 'Δημιουργία Ρουμπρίκας',
-    description: 'Σχεδίασε αναλυτικές ρουμπρίκες αξιολόγησης.',
-    icon: '📋',
-    color: '#87F1FF',
-    category: 'assess',
-    status: 'coming-soon',
-  },
-  {
-    id: 'exit-ticket',
-    name: 'Exit Ticket',
-    description: 'Δημιούργησε σύντομες αξιολογήσεις τέλους μαθήματος.',
-    icon: '🎫',
-    color: '#113285',
-    category: 'assess',
-    status: 'active',
-  },
-  {
-    id: 'report-comments',
-    name: 'Σχόλια Ελέγχου',
-    description: 'Δημιούργησε εξατομικευμένα σχόλια για τους ελέγχους.',
-    icon: '✍️',
-    color: '#4EA6DC',
-    category: 'assess',
-    status: 'coming-soon',
-  },
-]
-
-export default async function TeacherToolsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
+    id: 'study-planner',
+    href: '/tools/study-planner',
+    title: 'Study Planner',
+    titleEl: 'Πρόγραμμα Μελέτης',
+    description: 'Οργάνωσε το διάβασμά σου με έξυπνο πρόγραμμα',
+    icon: '📅',
+    color: 'from-green-500 to-teal-500',
+    status: 'coming-soon'
   }
+];
 
-  const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Καθηγητής'
-
+export default function ToolsPage() {
   return (
-    <div className="min-h-screen bg-[#191308]">
-      {/* Navigation */}
-      <nav className="bg-[#1E1E24] border-b border-[#454551]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-2">
-                <Logo size={32} />
-                <span className="text-lg font-heading font-semibold text-white hidden sm:inline">Noetium</span>
-              </Link>
-              <div className="hidden sm:flex items-center gap-1 ml-4">
-                <Link 
-                  href="/tools" 
-                  className="px-3 py-1.5 text-sm font-body font-medium text-[#87F1FF] border-b-2 border-[#87F1FF]"
-                >
-                  Εργαλεία
-                </Link>
-                <Link 
-                  href="/chat" 
-                  className="px-3 py-1.5 text-sm font-body text-[#D8D9DC] hover:text-white"
-                >
-                  Συνομιλία
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-[#E32D91] to-[#C830CC] rounded-full flex items-center justify-center">
-                <span className="text-white font-body font-medium text-sm">
-                  {userName[0].toUpperCase()}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#1E1E24] to-[#191308] border-b border-[#454551]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8">
-            <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-heading font-semibold text-white mb-2">
-                Εργαλεία Noetium
-              </h1>
-              <p className="text-[#D8D9DC] font-body">
-                Δωρεάν εργαλεία AI σχεδιασμένα να σου εξοικονομήσουν χρόνο και να βελτιώσουν τη διδασκαλία!
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Tools Grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Category Filters */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-          {TOOL_CATEGORIES.map(category => (
-            <button
-              key={category.id}
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-body whitespace-nowrap transition-all
-                        bg-[#1E1E24] text-[#D8D9DC] hover:bg-[#2a2a32] border border-[#454551]
-                        first:bg-[#4EA6DC] first:text-white first:border-[#4EA6DC]"
-            >
-              <span>{category.icon}</span>
-              <span>{category.name}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#454551]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Αναζήτηση εργαλείων..."
-              className="w-full pl-10 pr-4 py-2 bg-[#1E1E24] border border-[#454551] rounded-lg text-white placeholder-[#454551] font-body text-sm focus:ring-2 focus:ring-[#4EA6DC] focus:border-transparent"
-            />
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">🛠️ Εργαλεία Μάθησης</h1>
+          <p className="text-gray-600">AI-powered εργαλεία για να σε βοηθήσουν στο διάβασμα</p>
         </div>
 
         {/* Tools Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {TOOLS.map(tool => (
-            <ToolCard key={tool.id} tool={tool} />
+        <div className="grid md:grid-cols-2 gap-6">
+          {tools.map((tool, index) => (
+            <motion.div
+              key={tool.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              {tool.status === 'ready' ? (
+                <Link href={tool.href}>
+                  <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] h-full border border-gray-100">
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${tool.color} flex items-center justify-center text-2xl mb-4`}>
+                      {tool.icon}
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">{tool.titleEl}</h3>
+                    <p className="text-gray-600">{tool.description}</p>
+                  </div>
+                </Link>
+              ) : (
+                <div className="bg-white rounded-2xl p-6 shadow-sm h-full border border-gray-100 opacity-60">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${tool.color} flex items-center justify-center text-2xl opacity-50`}>
+                      {tool.icon}
+                    </div>
+                    <span className="bg-gray-200 text-gray-500 text-xs px-2 py-1 rounded-full">
+                      Σύντομα
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-500 mb-2">{tool.titleEl}</h3>
+                  <p className="text-gray-400">{tool.description}</p>
+                </div>
+              )}
+            </motion.div>
           ))}
         </div>
-      </section>
-    </div>
-  )
-}
 
-function ToolCard({ tool }: { tool: typeof TOOLS[0] }) {
-  const isComingSoon = tool.status === 'coming-soon'
-  
-  return (
-    <Link
-      href={isComingSoon ? '#' : `/tools/${tool.id}`}
-      className={`
-        block p-4 rounded-xl border transition-all group
-        ${isComingSoon 
-          ? 'bg-[#1E1E24]/50 border-[#454551]/50 cursor-not-allowed opacity-60' 
-          : 'bg-[#1E1E24] border-[#454551] hover:border-[#4EA6DC] hover:-translate-y-1'
-        }
-      `}
-    >
-      <div className="flex items-start gap-3">
-        <div 
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0"
-          style={{ backgroundColor: `${tool.color}20` }}
+        {/* Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl p-6 text-white"
         >
-          {tool.icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-heading font-semibold text-white text-sm truncate">
-              {tool.name}
-            </h3>
-            {isComingSoon && (
-              <span className="text-xs bg-[#454551] text-[#D8D9DC] px-2 py-0.5 rounded-full font-body">
-                Σύντομα
-              </span>
-            )}
+          <div className="flex items-start gap-4">
+            <span className="text-3xl">🎓</span>
+            <div>
+              <h3 className="font-semibold text-lg">Σωκρατική Μέθοδος</h3>
+              <p className="text-white/90 text-sm mt-1">
+                Τα εργαλεία μας χρησιμοποιούν τη Σωκρατική μέθοδο: δεν σου δίνουμε απλά τις απαντήσεις, 
+                αλλά σε καθοδηγούμε να τις ανακαλύψεις μόνος σου. Έτσι μαθαίνεις καλύτερα και θυμάσαι περισσότερα!
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-[#D8D9DC] font-body mt-1 line-clamp-2">
-            {tool.description}
-          </p>
-        </div>
-        {!isComingSoon && (
-          <svg 
-            className="w-5 h-5 text-[#454551] group-hover:text-[#4EA6DC] transition-colors shrink-0" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        )}
+        </motion.div>
       </div>
-    </Link>
-  )
+    </div>
+  );
 }

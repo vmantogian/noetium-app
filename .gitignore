@@ -33,3 +33,28 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python ingestion scripts (keep separate from Next.js app)
+*.py
+!next.config.py
+
+# Data files
+*.csv
+*.log
+*.txt
+*_state.json
+
+# Corpus data
+greek_wiki/
+greek_wikictionary/
+greek_wikisource/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Already in gitignore but confirming
+.env
+.env.local
+.env*.local
