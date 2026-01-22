@@ -1,10 +1,15 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { searchEducationalContent, buildRAGContext } from '@/lib/rag';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
+});
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
 const subjectMapping: Record<string, string> = {
@@ -42,9 +47,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { message, subject, conversationHistory } = await request.json();
+    const { message, subject, conversationHistory, imageBase64 } = await request.json();
 
-    if (!message) {
+    if (!message && !imageBase64) {
       return new Response(JSON.stringify({ error: 'No message provided' }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -54,14 +59,14 @@ export async function POST(request: NextRequest) {
     const subjectContext = subjectPrompts[subject] || subjectPrompts.general;
     const dbSubject = subjectMapping[subject] || undefined;
 
-    // RAG: Search educational content (run in parallel preparation)
+    // RAG: Search educational content
     let ragContext = '';
     let sources: any[] = [];
     
     try {
       const searchResults = await searchEducationalContent(message, {
         matchThreshold: 0.4,
-        matchCount: 3, // Reduced from 5 for speed
+        matchCount: 3,
         filterSubject: dbSubject,
       });
 
@@ -76,6 +81,10 @@ export async function POST(request: NextRequest) {
     } catch (ragError) {
       console.error('RAG search error:', ragError);
     }
+
+    // Check if user is asking for an image
+    const imageKeywords = ['δείξε μου', 'φτιάξε εικόνα', 'δημιούργησε εικόνα', 'σχεδίασε', 'εικόνα', 'διάγραμμα', 'σχήμα', 'show me', 'draw', 'image', 'diagram', 'visualize'];
+    const wantsImage = imageKeywords.some(keyword => message.toLowerCase().includes(keyword));
 
     const systemPrompt = `Είσαι ο Noetia, ένας φιλικός AI δάσκαλος για Έλληνες μαθητές.
 
@@ -94,16 +103,44 @@ ${subjectContext}
 - Κράτα τις απαντήσεις σύντομες (2-3 παράγραφοι max)
 - Κάνε μία ερώτηση τη φορά
 
+ΕΙΚΟΝΕΣ:
+- Αν ο μαθητής ζητάει εικόνα/διάγραμμα/σχήμα, περιέγραψε τι θα ήταν χρήσιμο να δει
+- Τελείωσε με: [ΘΕΛΩ_ΕΙΚΟΝΑ: περιγραφή της εικόνας στα αγγλικά]
+- Παράδειγμα: [ΘΕΛΩ_ΕΙΚΟΝΑ: simple diagram showing the water cycle with arrows]
+
 ${ragContext}
 
 Απάντησε ΜΟΝΟ στα Ελληνικά.`;
 
+    // Build messages array
     const messages: Anthropic.MessageParam[] = conversationHistory?.map((m: { role: string; content: string }) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content
     })) || [];
 
-    messages.push({ role: 'user', content: message });
+    // If image is provided, add it to the message
+    if (imageBase64) {
+      const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      messages.push({
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/jpeg',
+              data: cleanBase64,
+            },
+          },
+          {
+            type: 'text',
+            text: message || 'Τι βλέπεις σε αυτή την εικόνα; Μπορείς να με βοηθήσεις να την καταλάβω;',
+          },
+        ],
+      });
+    } else {
+      messages.push({ role: 'user', content: message });
+    }
 
     // Create streaming response
     const stream = await anthropic.messages.stream({
@@ -113,12 +150,12 @@ ${ragContext}
       messages: messages,
     });
 
-    // Create a ReadableStream for the response
     const encoder = new TextEncoder();
+    let fullResponse = '';
     
     const readableStream = new ReadableStream({
       async start(controller) {
-        // First, send sources if available
+        // Send sources if available
         if (sources.length > 0) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'sources', sources })}\n\n`));
         }
@@ -126,7 +163,34 @@ ${ragContext}
         // Stream the text
         for await (const event of stream) {
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            fullResponse += event.delta.text;
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`));
+          }
+        }
+
+        // Check if AI wants to generate an image
+        const imageMatch = fullResponse.match(/\[ΘΕΛΩ_ΕΙΚΟΝΑ:\s*(.+?)\]/);
+        if (imageMatch) {
+          const imagePrompt = imageMatch[1];
+          
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'generating_image' })}\n\n`));
+            
+            const imageResponse = await openai.images.generate({
+              model: 'dall-e-3',
+              prompt: `Educational illustration for Greek students. ${imagePrompt}. Safe for children, clear and simple, no text.`,
+              n: 1,
+              size: '1024x1024',
+              quality: 'standard',
+            });
+
+            const imageUrl = imageResponse.data[0]?.url;
+            if (imageUrl) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'image', imageUrl })}\n\n`));
+            }
+          } catch (imgError) {
+            console.error('Image generation error:', imgError);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'image_error', error: 'Δεν μπόρεσα να δημιουργήσω εικόνα' })}\n\n`));
           }
         }
 
@@ -142,7 +206,13 @@ ${ragContext}
             activity_type: 'conversation',
             activity_id: subject,
             completed: true,
-            metadata: { subject, usedRAG: sources.length > 0, sourceCount: sources.length }
+            metadata: { 
+              subject, 
+              usedRAG: sources.length > 0, 
+              sourceCount: sources.length,
+              hadImage: !!imageBase64,
+              generatedImage: !!imageMatch
+            }
           });
         } catch (e) {
           console.error('Progress save error:', e);

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Message {
   id: string;
@@ -10,6 +11,8 @@ interface Message {
   content: string;
   timestamp: Date;
   sources?: { title: string; source: string; similarity: number }[];
+  imageUrl?: string;
+  userImage?: string;
   isStreaming?: boolean;
 }
 
@@ -33,10 +36,10 @@ const subjects: Subject[] = [
 
 const quickPrompts = [
   'Εξήγησέ μου σαν να είμαι 10 χρονών',
-  'Δώσε μου ένα παράδειγμα',
+  'Δείξε μου ένα διάγραμμα',
   'Γιατί είναι σημαντικό αυτό;',
   'Μπορείς να το απλοποιήσεις;',
-  'Ποιο είναι το επόμενο βήμα;',
+  'Δώσε μου ένα παράδειγμα',
 ];
 
 export default function ChatTutorPage() {
@@ -46,7 +49,10 @@ export default function ChatTutorPage() {
   const [selectedSubject, setSelectedSubject] = useState<Subject>(subjects[0]);
   const [showSubjectPicker, setShowSubjectPicker] = useState(false);
   const [showSources, setShowSources] = useState<string | null>(null);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [generatingImage, setGeneratingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,20 +63,39 @@ export default function ChatTutorPage() {
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: `Γεια σου! 👋 Είμαι ο Noetia, ο AI δάσκαλός σου.\n\nΧρησιμοποιώ τη Σωκρατική μέθοδο - αυτό σημαίνει ότι θα σε καθοδηγήσω να βρεις τις απαντήσεις μόνος σου με ερωτήσεις και hints!\n\nΈχω πρόσβαση στα ελληνικά σχολικά βιβλία για να σε βοηθήσω καλύτερα. Τι θα ήθελες να μάθεις σήμερα; 📚`,
+        content: `Γεια σου! 👋 Είμαι ο Noetia, ο AI δάσκαλός σου.\n\nΧρησιμοποιώ τη Σωκρατική μέθοδο - αυτό σημαίνει ότι θα σε καθοδηγήσω να βρεις τις απαντήσεις μόνος σου με ερωτήσεις και hints!\n\nΈχω πρόσβαση στα ελληνικά σχολικά βιβλία και μπορώ να δημιουργήσω εικόνες για να σε βοηθήσω. Τι θα ήθελες να μάθεις σήμερα; 📚`,
         timestamp: new Date()
       }]);
     }
   }, []);
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPendingImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePendingImage = () => {
+    setPendingImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+    if ((!input.trim() && !pendingImage) || loading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
-      timestamp: new Date()
+      content: input.trim() || 'Τι βλέπεις σε αυτή την εικόνα;',
+      timestamp: new Date(),
+      userImage: pendingImage || undefined
     };
 
     const assistantMessageId = (Date.now() + 1).toString();
@@ -83,7 +108,12 @@ export default function ChatTutorPage() {
       isStreaming: true
     }]);
     
+    const imageToSend = pendingImage;
     setInput('');
+    setPendingImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     setLoading(true);
 
     try {
@@ -93,6 +123,7 @@ export default function ChatTutorPage() {
         body: JSON.stringify({
           message: userMessage.content,
           subject: selectedSubject.id,
+          imageBase64: imageToSend,
           conversationHistory: messages.slice(-10).filter(m => !m.isStreaming).map(m => ({
             role: m.role,
             content: m.content
@@ -104,14 +135,13 @@ export default function ChatTutorPage() {
         throw new Error('Failed to get response');
       }
 
-      // Check if it's a streaming response
       const contentType = response.headers.get('content-type');
       
       if (contentType?.includes('text/event-stream')) {
-        // Handle streaming response
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
         let sources: any[] = [];
+        let generatedImageUrl: string | null = null;
 
         if (reader) {
           while (true) {
@@ -134,10 +164,24 @@ export default function ChatTutorPage() {
                         ? { ...m, content: m.content + data.text }
                         : m
                     ));
+                  } else if (data.type === 'generating_image') {
+                    setGeneratingImage(true);
+                  } else if (data.type === 'image') {
+                    generatedImageUrl = data.imageUrl;
+                    setGeneratingImage(false);
+                  } else if (data.type === 'image_error') {
+                    setGeneratingImage(false);
                   } else if (data.type === 'done') {
                     setMessages(prev => prev.map(m => 
                       m.id === assistantMessageId 
-                        ? { ...m, isStreaming: false, sources: sources.length > 0 ? sources : undefined }
+                        ? { 
+                            ...m, 
+                            isStreaming: false, 
+                            sources: sources.length > 0 ? sources : undefined,
+                            imageUrl: generatedImageUrl || undefined,
+                            // Remove the [ΘΕΛΩ_ΕΙΚΟΝΑ: ...] tag from displayed content
+                            content: m.content.replace(/\[ΘΕΛΩ_ΕΙΚΟΝΑ:[^\]]+\]/g, '').trim()
+                          }
                         : m
                     ));
                   }
@@ -166,6 +210,7 @@ export default function ChatTutorPage() {
       ));
     } finally {
       setLoading(false);
+      setGeneratingImage(false);
     }
   };
 
@@ -273,7 +318,39 @@ export default function ChatTutorPage() {
                     )}
                   </div>
                 )}
+
+                {/* User uploaded image */}
+                {message.userImage && (
+                  <div className="mb-3">
+                    <img 
+                      src={message.userImage} 
+                      alt="Uploaded" 
+                      className="max-w-full rounded-lg max-h-64 object-contain"
+                    />
+                  </div>
+                )}
+
                 <p className="whitespace-pre-wrap">{message.content}{message.isStreaming && message.content === '' && '...'}</p>
+
+                {/* Generated image */}
+                {message.imageUrl && (
+                  <div className="mt-3">
+                    <img 
+                      src={message.imageUrl} 
+                      alt="Generated illustration" 
+                      className="max-w-full rounded-lg shadow-md"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">🎨 Εικόνα δημιουργήθηκε με AI</p>
+                  </div>
+                )}
+
+                {/* Generating image indicator */}
+                {message.isStreaming && generatingImage && (
+                  <div className="mt-3 flex items-center gap-2 text-purple-500">
+                    <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                    <span className="text-sm">Δημιουργώ εικόνα...</span>
+                  </div>
+                )}
                 
                 {showSources === message.id && message.sources && (
                   <motion.div
@@ -295,6 +372,31 @@ export default function ChatTutorPage() {
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Pending Image Preview */}
+      {pendingImage && (
+        <div className="bg-white border-t px-4 py-2">
+          <div className="container mx-auto max-w-4xl">
+            <div className="flex items-center gap-3">
+              <img 
+                src={pendingImage} 
+                alt="To upload" 
+                className="h-16 w-16 object-cover rounded-lg"
+              />
+              <div className="flex-1">
+                <p className="text-sm text-gray-600">Εικόνα έτοιμη για αποστολή</p>
+                <p className="text-xs text-gray-400">Γράψε μια ερώτηση ή πάτα αποστολή</p>
+              </div>
+              <button
+                onClick={removePendingImage}
+                className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Prompts */}
       <div className="bg-white border-t">
@@ -323,20 +425,36 @@ export default function ChatTutorPage() {
       <div className="bg-white border-t p-4 pb-20 md:pb-4">
         <div className="container mx-auto max-w-4xl">
           <div className="flex gap-2">
+            {/* Image upload button */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              title="Ανέβασε εικόνα"
+            >
+              📷
+            </button>
+
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              placeholder="Ρώτα με οτιδήποτε..."
+              placeholder={pendingImage ? "Ρώτα για την εικόνα..." : "Ρώτα με οτιδήποτε..."}
               className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
               disabled={loading}
             />
             <button
               onClick={sendMessage}
-              disabled={loading || !input.trim()}
+              disabled={loading || (!input.trim() && !pendingImage)}
               className={`px-6 rounded-xl font-medium ${
-                loading || !input.trim()
+                loading || (!input.trim() && !pendingImage)
                   ? 'bg-gray-200 text-gray-400'
                   : 'bg-purple-500 text-white hover:bg-purple-600'
               }`}
