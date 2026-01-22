@@ -2,12 +2,15 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  sources?: { title: string; source: string; similarity: number }[];
+  isStreaming?: boolean;
 }
 
 interface Subject {
@@ -42,19 +45,19 @@ export default function ChatTutorPage() {
   const [loading, setLoading] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<Subject>(subjects[0]);
   const [showSubjectPicker, setShowSubjectPicker] = useState(false);
+  const [showSources, setShowSources] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Add welcome message
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: `Γεια σου! 👋 Είμαι ο Noetia, ο AI δάσκαλός σου.\n\nΧρησιμοποιώ τη Σωκρατική μέθοδο - αυτό σημαίνει ότι θα σε καθοδηγήσω να βρεις τις απαντήσεις μόνος σου με ερωτήσεις και hints!\n\nΤι θα ήθελες να μάθεις σήμερα; 📚`,
+        content: `Γεια σου! 👋 Είμαι ο Noetia, ο AI δάσκαλός σου.\n\nΧρησιμοποιώ τη Σωκρατική μέθοδο - αυτό σημαίνει ότι θα σε καθοδηγήσω να βρεις τις απαντήσεις μόνος σου με ερωτήσεις και hints!\n\nΈχω πρόσβαση στα ελληνικά σχολικά βιβλία για να σε βοηθήσω καλύτερα. Τι θα ήθελες να μάθεις σήμερα; 📚`,
         timestamp: new Date()
       }]);
     }
@@ -70,7 +73,16 @@ export default function ChatTutorPage() {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const assistantMessageId = (Date.now() + 1).toString();
+
+    setMessages(prev => [...prev, userMessage, {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isStreaming: true
+    }]);
+    
     setInput('');
     setLoading(true);
 
@@ -81,32 +93,77 @@ export default function ChatTutorPage() {
         body: JSON.stringify({
           message: userMessage.content,
           subject: selectedSubject.id,
-          conversationHistory: messages.slice(-10).map(m => ({
+          conversationHistory: messages.slice(-10).filter(m => !m.isStreaming).map(m => ({
             role: m.role,
             content: m.content
           }))
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.response,
-          timestamp: new Date()
-        }]);
-      } else {
+      if (!response.ok) {
         throw new Error('Failed to get response');
+      }
+
+      // Check if it's a streaming response
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType?.includes('text/event-stream')) {
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let sources: any[] = [];
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  
+                  if (data.type === 'sources') {
+                    sources = data.sources;
+                  } else if (data.type === 'text') {
+                    setMessages(prev => prev.map(m => 
+                      m.id === assistantMessageId 
+                        ? { ...m, content: m.content + data.text }
+                        : m
+                    ));
+                  } else if (data.type === 'done') {
+                    setMessages(prev => prev.map(m => 
+                      m.id === assistantMessageId 
+                        ? { ...m, isStreaming: false, sources: sources.length > 0 ? sources : undefined }
+                        : m
+                    ));
+                  }
+                } catch (e) {
+                  // Ignore parse errors for incomplete chunks
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // Handle non-streaming response (fallback)
+        const data = await response.json();
+        setMessages(prev => prev.map(m => 
+          m.id === assistantMessageId 
+            ? { ...m, content: data.response, isStreaming: false, sources: data.sources }
+            : m
+        ));
       }
     } catch (error) {
       console.error('Chat error:', error);
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Συγγνώμη, υπήρξε κάποιο πρόβλημα. Δοκίμασε ξανά!',
-        timestamp: new Date()
-      }]);
+      setMessages(prev => prev.map(m => 
+        m.id === assistantMessageId 
+          ? { ...m, content: 'Συγγνώμη, υπήρξε κάποιο πρόβλημα. Δοκίμασε ξανά!', isStreaming: false }
+          : m
+      ));
     } finally {
       setLoading(false);
     }
@@ -132,6 +189,9 @@ export default function ChatTutorPage() {
         <div className="container mx-auto max-w-4xl px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <Link href="/student" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <span className="text-xl">←</span>
+              </Link>
               <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-xl">
                 🤖
               </div>
@@ -141,14 +201,13 @@ export default function ChatTutorPage() {
               </div>
             </div>
 
-            {/* Subject Picker */}
             <div className="relative">
               <button
                 onClick={() => setShowSubjectPicker(!showSubjectPicker)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl ${selectedSubject.color} text-white`}
               >
                 <span>{selectedSubject.icon}</span>
-                <span className="text-sm font-medium">{selectedSubject.name}</span>
+                <span className="text-sm font-medium hidden sm:inline">{selectedSubject.name}</span>
                 <span>▼</span>
               </button>
 
@@ -201,31 +260,38 @@ export default function ChatTutorPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">🤖</span>
                     <span className="text-xs text-gray-500">Noetia</span>
+                    {message.sources && message.sources.length > 0 && (
+                      <button
+                        onClick={() => setShowSources(showSources === message.id ? null : message.id)}
+                        className="text-xs text-purple-500 hover:text-purple-700 ml-2"
+                      >
+                        📚 {message.sources.length} πηγές
+                      </button>
+                    )}
+                    {message.isStreaming && (
+                      <span className="text-xs text-purple-500 animate-pulse">●</span>
+                    )}
                   </div>
                 )}
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                <p className="whitespace-pre-wrap">{message.content}{message.isStreaming && message.content === '' && '...'}</p>
+                
+                {showSources === message.id && message.sources && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-3 pt-3 border-t text-xs text-gray-500"
+                  >
+                    <p className="font-medium mb-1">Πηγές από σχολικά βιβλία:</p>
+                    {message.sources.map((source, i) => (
+                      <p key={i} className="truncate">
+                        {i + 1}. {source.title || source.source}
+                      </p>
+                    ))}
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           ))}
-
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex justify-start"
-            >
-              <div className="bg-white border shadow-sm p-4 rounded-2xl">
-                <motion.div
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="flex items-center gap-2"
-                >
-                  <span>🤔</span>
-                  <span className="text-gray-500">Σκέφτομαι...</span>
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -254,7 +320,7 @@ export default function ChatTutorPage() {
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t p-4">
+      <div className="bg-white border-t p-4 pb-20 md:pb-4">
         <div className="container mx-auto max-w-4xl">
           <div className="flex gap-2">
             <input
@@ -280,6 +346,28 @@ export default function ChatTutorPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        <div className="flex justify-around py-2">
+          <Link href="/student" className="flex flex-col items-center px-3 py-1 text-gray-500">
+            <span className="text-xl">🏠</span>
+            <span className="text-xs mt-1">Αρχική</span>
+          </Link>
+          <Link href="/enrichment" className="flex flex-col items-center px-3 py-1 text-gray-500">
+            <span className="text-xl">🌟</span>
+            <span className="text-xs mt-1">Μάθηση</span>
+          </Link>
+          <Link href="/chat" className="flex flex-col items-center px-3 py-1 text-purple-600">
+            <span className="text-xl">🤖</span>
+            <span className="text-xs mt-1">AI</span>
+          </Link>
+          <Link href="/profile" className="flex flex-col items-center px-3 py-1 text-gray-500">
+            <span className="text-xl">👤</span>
+            <span className="text-xs mt-1">Προφίλ</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }

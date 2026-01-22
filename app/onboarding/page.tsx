@@ -114,9 +114,10 @@ export default function OnboardingPage() {
     
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (authError || !user) {
+        console.error('Auth error:', authError);
         router.push('/login');
         return;
       }
@@ -140,21 +141,28 @@ export default function OnboardingPage() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      // Try update first
+      const { error: updateError } = await supabase
         .from('user_profiles')
         .update(updateData)
         .eq('user_id', user.id);
 
-      if (error) {
-        console.error('Error updating profile:', error);
-        // Try insert if update fails
-        await supabase.from('user_profiles').insert({
+      if (updateError) {
+        console.error('Update error, trying insert:', updateError);
+        // Try insert if update fails (profile might not exist yet)
+        const { error: insertError } = await supabase.from('user_profiles').insert({
           user_id: user.id,
           ...updateData,
         });
+        
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          // Even if DB fails, still redirect - onboarding is optional for UX
+        }
       }
 
-      // Redirect based on user type
+      // ALWAYS redirect, even if DB operations fail
+      // This ensures users aren't stuck on onboarding
       if (userType === 'teacher') {
         router.push('/teacher');
       } else {
@@ -162,6 +170,12 @@ export default function OnboardingPage() {
       }
     } catch (error) {
       console.error('Onboarding error:', error);
+      // Still redirect on error - don't trap users
+      if (userType === 'teacher') {
+        router.push('/teacher');
+      } else {
+        router.push('/student');
+      }
     } finally {
       setLoading(false);
     }
