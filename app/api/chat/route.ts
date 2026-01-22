@@ -3,6 +3,8 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
+export const dynamic = 'force-dynamic';
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
@@ -32,6 +34,53 @@ const subjectPrompts: Record<string, string> = {
   geography: 'Είσαι ειδικός στη Γεωγραφία. Χρησιμοποίησε χάρτες και τοποθεσίες.',
   general: 'Είσαι γενικός δάσκαλος. Βοήθα με οποιοδήποτε θέμα.',
 };
+
+// Search for existing textbook images
+async function searchTextbookImages(
+  supabase: any,
+  query: string,
+  subject?: string
+): Promise<{ content: string; source_title: string } | null> {
+  try {
+    const embeddingResponse = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: query,
+    });
+    
+    const embedding = embeddingResponse.data[0].embedding;
+
+    // Search for image descriptions in educational content
+    const { data, error } = await supabase.rpc('search_educational_content', {
+      query_embedding: embedding,
+      match_threshold: 0.65,  // Higher threshold for better matches
+      match_count: 1,
+      filter_subject: subject || null
+    });
+
+    if (error || !data || data.length === 0) {
+      return null;
+    }
+
+    // Check if this is an image description
+    const result = data[0];
+    const isImageContent = result.metadata?.content_type === 'image_description' ||
+                          result.content?.toLowerCase().includes('εικόνα') ||
+                          result.content?.toLowerCase().includes('διάγραμμα') ||
+                          result.content?.toLowerCase().includes('σχήμα');
+
+    if (isImageContent && result.similarity > 0.7) {
+      return {
+        content: result.content,
+        source_title: result.source_title || result.source
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Textbook image search error:', error);
+    return null;
+  }
+}
 
 // RAG search function
 async function searchEducationalContent(
@@ -146,24 +195,26 @@ ${subjectContext}
 - Κράτα τις απαντήσεις σύντομες (2-3 παράγραφοι max)
 - Κάνε μία ερώτηση τη φορά
 
-ΕΙΚΟΝΕΣ ΜΕ ΕΛΛΗΝΙΚΕΣ ΕΤΙΚΕΤΕΣ:
+ΕΙΚΟΝΕΣ:
 Αν ο μαθητής ζητάει εικόνα/διάγραμμα/σχήμα:
-1. Πρώτα εξήγησε τι θα δείξει η εικόνα
-2. Τελείωσε με το ειδικό tag που περιέχει:
-   - Περιγραφή εικόνας στα ΑΓΓΛΙΚΑ (χωρίς κείμενο στην εικόνα)
-   - Ελληνικές ετικέτες με θέσεις (x%, y%)
+1. Πρώτα εξήγησε ΣΥΝΤΟΜΑ τι θα δείξει η εικόνα (1-2 προτάσεις)
+2. ΜΗΝ περιγράφεις τις ετικέτες στο κείμενο
+3. Τελείωσε με το ειδικό tag:
 
-ΜΟΡΦΗ TAG:
 [ΕΙΚΟΝΑ]
-prompt: English description of image WITHOUT ANY TEXT. Clean diagram with arrows and visual elements only.
+prompt: Simple educational diagram showing [concept]. Flat vector style, white background, use arrows and simple shapes. NO TEXT, NO NUMBERS, NO AXES WITH MARKINGS. If axes needed, use only plain arrows.
 labels:
-- text: "Ήλιος" | x: 15 | y: 10
-- text: "Νερό" | x: 50 | y: 85
-- text: "CO₂" | x: 20 | y: 40
-- text: "O₂" | x: 80 | y: 40
+- text: "Ετικέτα" | x: 50 | y: 15
+- text: "x" | x: 95 | y: 52
+- text: "y" | x: 52 | y: 5
 [/ΕΙΚΟΝΑ]
 
-Σημαντικό: Οι θέσεις είναι ποσοστά (0-100) από αριστερά (x) και πάνω (y).
+ΚΑΝΟΝΕΣ ΕΙΚΟΝΑΣ:
+- prompt στα ΑΓΓΛΙΚΑ, ζήτα ΠΑΝΤΑ: "NO TEXT, NO NUMBERS, NO AXES WITH MARKINGS"
+- labels στα ΕΛΛΗΝΙΚΑ (ή σύμβολα όπως x, y, r, θ, ω)
+- Αν χρειάζονται άξονες, πρόσθεσε ετικέτες "x", "y", "0" κτλ στα labels
+- Θέσεις x,y είναι ποσοστά (0-100%)
+- Μέχρι 8 ετικέτες max
 
 ${ragContext}
 
@@ -247,32 +298,51 @@ ${ragContext}
           
           if (imagePrompt) {
             try {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'generating_image' })}\n\n`));
+              // STEP 1: Search for existing textbook image first
+              const textbookImage = await searchTextbookImages(supabase, imagePrompt, dbSubject);
               
-              // Generate clean image with DALL-E (NO TEXT)
-              const safePrompt = `Educational illustration for children. ${imagePrompt}. 
-CRITICAL: NO TEXT, NO LABELS, NO WORDS, NO LETTERS, NO NUMBERS anywhere in the image.
-Use only visual elements: arrows, icons, symbols, colors, shapes.
-Clean, simple, colorful, child-friendly style suitable for elementary school students.
-White or light background for clarity.`;
-
-              const imageResponse = await openai.images.generate({
-                model: 'dall-e-3',
-                prompt: safePrompt,
-                n: 1,
-                size: '1024x1024',
-                quality: 'standard',
-                style: 'vivid',
-              });
-
-              const imageUrl = imageResponse.data?.[0]?.url;
-              if (imageUrl) {
-                // Send image URL with labels for frontend overlay
+              if (textbookImage) {
+                // Found textbook image - send description instead of generating
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                  type: 'image_with_labels', 
-                  imageUrl,
-                  labels 
+                  type: 'textbook_image', 
+                  description: textbookImage.content,
+                  source: textbookImage.source_title
                 })}\n\n`));
+              } else {
+                // STEP 2: Generate with DALL-E if no textbook image
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'generating_image' })}\n\n`));
+                
+                // Clean, minimal prompt for better visuals
+                const safePrompt = `Educational illustration for children. ${imagePrompt}
+CRITICAL STYLE REQUIREMENTS:
+- Flat design, minimal and clean, vector illustration style
+- Solid white or very light solid color background
+- ABSOLUTELY NO TEXT, NO LABELS, NO WORDS, NO LETTERS, NO NUMBERS anywhere
+- NO coordinate axes with numbers or tick marks
+- If showing axes, use only simple arrows without any markings
+- NO rulers, NO scales, NO measurement markings
+- Simple geometric shapes, arrows, and icons only
+- Bright, friendly, saturated colors
+- Child-safe, educational content
+- Clean, uncluttered composition`;
+
+                const imageResponse = await openai.images.generate({
+                  model: 'dall-e-3',
+                  prompt: safePrompt,
+                  n: 1,
+                  size: '1024x1024',
+                  quality: 'standard',
+                  style: 'vivid',
+                });
+
+                const imageUrl = imageResponse.data?.[0]?.url;
+                if (imageUrl) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                    type: 'image_with_labels', 
+                    imageUrl,
+                    labels 
+                  })}\n\n`));
+                }
               }
             } catch (imgError) {
               console.error('Image generation error:', imgError);

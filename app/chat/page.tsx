@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 
 // ============================================================================
@@ -34,6 +34,17 @@ interface Subject {
 }
 
 // ============================================================================
+// Helper: Strip image tags from content for display
+// ============================================================================
+
+function stripImageTags(content: string): string {
+  return content
+    .replace(/\[ΕΙΚΟΝΑ\][\s\S]*?\[\/ΕΙΚΟΝΑ\]/g, '')
+    .replace(/\[ΘΕΛΩ_ΕΙΚΟΝΑ:[^\]]+\]/g, '')
+    .trim();
+}
+
+// ============================================================================
 // LabeledImage Component - Overlays Greek text on images
 // ============================================================================
 
@@ -42,7 +53,6 @@ function LabeledImage({ imageUrl, labels }: { imageUrl: string; labels: Label[] 
 
   return (
     <div className="relative inline-block max-w-full">
-      {/* Base Image */}
       <img 
         src={imageUrl} 
         alt="Educational illustration" 
@@ -50,7 +60,6 @@ function LabeledImage({ imageUrl, labels }: { imageUrl: string; labels: Label[] 
         onLoad={() => setImageLoaded(true)}
       />
       
-      {/* Greek Labels Overlay */}
       {imageLoaded && labels && labels.length > 0 && (
         <div className="absolute inset-0 pointer-events-none">
           {labels.map((label, index) => (
@@ -62,7 +71,6 @@ function LabeledImage({ imageUrl, labels }: { imageUrl: string; labels: Label[] 
                 top: `${label.y}%`,
               }}
             >
-              {/* Label with background for readability */}
               <span 
                 className="inline-block px-2 py-1 text-sm md:text-base font-bold rounded-lg shadow-lg"
                 style={{
@@ -210,6 +218,7 @@ export default function ChatTutorPage() {
         let sources: any[] = [];
         let generatedImageUrl: string | null = null;
         let imageLabels: Label[] = [];
+        let rawContent = '';
 
         if (reader) {
           while (true) {
@@ -227,25 +236,37 @@ export default function ChatTutorPage() {
                   if (data.type === 'sources') {
                     sources = data.sources;
                   } else if (data.type === 'text') {
+                    rawContent += data.text;
+                    // IMPORTANT: Strip image tags during streaming for clean display
+                    const cleanContent = stripImageTags(rawContent);
                     setMessages(prev => prev.map(m => 
                       m.id === assistantMessageId 
-                        ? { ...m, content: m.content + data.text }
+                        ? { ...m, content: cleanContent }
                         : m
                     ));
                   } else if (data.type === 'generating_image') {
                     setGeneratingImage(true);
                   } else if (data.type === 'image_with_labels') {
-                    // New type: image with Greek labels
                     generatedImageUrl = data.imageUrl;
                     imageLabels = data.labels || [];
                     setGeneratingImage(false);
                   } else if (data.type === 'image') {
-                    // Fallback for old format
                     generatedImageUrl = data.imageUrl;
                     setGeneratingImage(false);
+                  } else if (data.type === 'textbook_image') {
+                    // Found existing textbook image description
+                    setMessages(prev => prev.map(m => 
+                      m.id === assistantMessageId 
+                        ? { 
+                            ...m, 
+                            content: stripImageTags(rawContent) + '\n\n📖 ' + data.description,
+                          }
+                        : m
+                    ));
                   } else if (data.type === 'image_error') {
                     setGeneratingImage(false);
                   } else if (data.type === 'done') {
+                    const finalContent = stripImageTags(rawContent);
                     setMessages(prev => prev.map(m => 
                       m.id === assistantMessageId 
                         ? { 
@@ -254,8 +275,7 @@ export default function ChatTutorPage() {
                             sources: sources.length > 0 ? sources : undefined,
                             imageUrl: generatedImageUrl || undefined,
                             imageLabels: imageLabels.length > 0 ? imageLabels : undefined,
-                            // Remove the image tag from displayed content
-                            content: m.content.replace(/\[ΕΙΚΟΝΑ\][\s\S]*?\[\/ΕΙΚΟΝΑ\]/g, '').trim()
+                            content: finalContent
                           }
                         : m
                     ));
@@ -271,7 +291,7 @@ export default function ChatTutorPage() {
         const data = await response.json();
         setMessages(prev => prev.map(m => 
           m.id === assistantMessageId 
-            ? { ...m, content: data.response, isStreaming: false, sources: data.sources }
+            ? { ...m, content: stripImageTags(data.response || ''), isStreaming: false, sources: data.sources }
             : m
         ));
       }
@@ -404,12 +424,11 @@ export default function ChatTutorPage() {
                   </div>
                 )}
 
-                {/* Message content - ALMOST BLACK */}
+                {/* Message content */}
                 <p className={`whitespace-pre-wrap ${
                   message.role === 'user' ? 'text-white' : 'text-gray-900'
                 }`}>
-                  {message.content}
-                  {message.isStreaming && message.content === '' && '...'}
+                  {message.content || (message.isStreaming ? '...' : '')}
                 </p>
 
                 {/* Generated image WITH GREEK LABELS */}
@@ -438,7 +457,7 @@ export default function ChatTutorPage() {
                 {message.isStreaming && generatingImage && (
                   <div className="mt-3 flex items-center gap-2 text-purple-600">
                     <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full"></div>
-                    <span className="text-sm font-semibold">Δημιουργώ εικόνα με ελληνικές ετικέτες...</span>
+                    <span className="text-sm font-semibold">Δημιουργώ εικόνα...</span>
                   </div>
                 )}
                 
