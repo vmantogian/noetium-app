@@ -18,11 +18,18 @@ interface Interest {
 }
 
 const grades: GradeOption[] = [
+  // Δημοτικό (Primary School)
+  { id: 'a_dimotiko', label: 'Α\' Δημοτικού', level: 'dimotiko' },
+  { id: 'b_dimotiko', label: 'Β\' Δημοτικού', level: 'dimotiko' },
+  { id: 'c_dimotiko', label: 'Γ\' Δημοτικού', level: 'dimotiko' },
+  { id: 'd_dimotiko', label: 'Δ\' Δημοτικού', level: 'dimotiko' },
   { id: 'e_dimotiko', label: 'Ε\' Δημοτικού', level: 'dimotiko' },
   { id: 'st_dimotiko', label: 'ΣΤ\' Δημοτικού', level: 'dimotiko' },
+  // Γυμνάσιο (Middle School)
   { id: 'a_gymnasio', label: 'Α\' Γυμνασίου', level: 'gymnasio' },
   { id: 'b_gymnasio', label: 'Β\' Γυμνασίου', level: 'gymnasio' },
   { id: 'c_gymnasio', label: 'Γ\' Γυμνασίου', level: 'gymnasio' },
+  // Λύκειο (High School)
   { id: 'a_lykeio', label: 'Α\' Λυκείου', level: 'lykeio' },
   { id: 'b_lykeio', label: 'Β\' Λυκείου', level: 'lykeio' },
   { id: 'c_lykeio', label: 'Γ\' Λυκείου', level: 'lykeio' },
@@ -62,16 +69,22 @@ const goals = [
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [userType, setUserType] = useState<'student' | 'teacher' | null>(null);
+  const [userType, setUserType] = useState<'student' | 'teacher' | 'parent' | null>(null);
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [teachingGrades, setTeachingGrades] = useState<string[]>([]);
+  const [childrenGrades, setChildrenGrades] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Dynamic total steps based on user type
-  const totalSteps = userType === 'teacher' ? 4 : 5;
+  const getTotalSteps = () => {
+    if (userType === 'teacher') return 4;
+    if (userType === 'parent') return 3;
+    return 5; // student
+  };
+  const totalSteps = getTotalSteps();
 
   const toggleInterest = (id: string) => {
     setSelectedInterests(prev =>
@@ -93,6 +106,12 @@ export default function OnboardingPage() {
 
   const toggleTeachingGrade = (id: string) => {
     setTeachingGrades(prev =>
+      prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
+    );
+  };
+
+  const toggleChildrenGrade = (id: string) => {
+    setChildrenGrades(prev =>
       prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
     );
   };
@@ -124,22 +143,33 @@ export default function OnboardingPage() {
 
       const gradeInfo = grades.find(g => g.id === selectedGrade);
 
-      // Update user profile based on type
-      const updateData = userType === 'teacher' ? {
-        user_type: 'teacher',
-        subjects: selectedSubjects,
-        teaching_grades: teachingGrades,
-        onboarding_completed: true,
-        updated_at: new Date().toISOString(),
-      } : {
-        user_type: 'student',
-        grade: selectedGrade,
-        grade_level: gradeInfo?.level,
-        interests: selectedInterests,
-        goals: selectedGoals,
+      // Build update data based on user type
+      let updateData: any = {
+        user_type: userType,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       };
+
+      if (userType === 'student') {
+        updateData = {
+          ...updateData,
+          grade: selectedGrade,
+          grade_level: gradeInfo?.level,
+          interests: selectedInterests,
+          goals: selectedGoals,
+        };
+      } else if (userType === 'teacher') {
+        updateData = {
+          ...updateData,
+          subjects: selectedSubjects,
+          teaching_grades: teachingGrades,
+        };
+      } else if (userType === 'parent') {
+        updateData = {
+          ...updateData,
+          children_grades: childrenGrades,
+        };
+      }
 
       // Try update first
       const { error: updateError } = await supabase
@@ -149,7 +179,6 @@ export default function OnboardingPage() {
 
       if (updateError) {
         console.error('Update error, trying insert:', updateError);
-        // Try insert if update fails (profile might not exist yet)
         const { error: insertError } = await supabase.from('user_profiles').insert({
           user_id: user.id,
           ...updateData,
@@ -157,22 +186,24 @@ export default function OnboardingPage() {
         
         if (insertError) {
           console.error('Insert error:', insertError);
-          // Even if DB fails, still redirect - onboarding is optional for UX
         }
       }
 
-      // ALWAYS redirect, even if DB operations fail
-      // This ensures users aren't stuck on onboarding
+      // Redirect based on user type
       if (userType === 'teacher') {
         router.push('/teacher');
+      } else if (userType === 'parent') {
+        router.push('/parent');
       } else {
         router.push('/student');
       }
     } catch (error) {
       console.error('Onboarding error:', error);
-      // Still redirect on error - don't trap users
+      // Still redirect on error
       if (userType === 'teacher') {
         router.push('/teacher');
+      } else if (userType === 'parent') {
+        router.push('/parent');
       } else {
         router.push('/student');
       }
@@ -186,16 +217,98 @@ export default function OnboardingPage() {
       case 1: return userType !== null;
       case 2: 
         if (userType === 'teacher') return selectedSubjects.length > 0;
+        if (userType === 'parent') return childrenGrades.length > 0;
         return selectedGrade !== null;
       case 3:
         if (userType === 'teacher') return teachingGrades.length > 0;
+        if (userType === 'parent') return true; // Final step
         return selectedInterests.length > 0;
       case 4:
-        if (userType === 'teacher') return true; // Final step for teachers
+        if (userType === 'teacher') return true; // Final step
         return selectedGoals.length > 0;
       case 5: return true; // Final step for students
       default: return false;
     }
+  };
+
+  // Grade selection component (reused for student and parent)
+  const GradeSelector = ({ 
+    selectedGrades, 
+    onToggle, 
+    multiSelect = false 
+  }: { 
+    selectedGrades: string[] | string | null; 
+    onToggle: (id: string) => void;
+    multiSelect?: boolean;
+  }) => {
+    const isSelected = (id: string) => {
+      if (multiSelect) return (selectedGrades as string[])?.includes(id);
+      return selectedGrades === id;
+    };
+
+    return (
+      <div className="space-y-4 max-h-80 overflow-y-auto">
+        {/* Δημοτικό */}
+        <div>
+          <p className="text-xs text-purple-600 uppercase font-semibold mb-2">🏫 Δημοτικό</p>
+          <div className="grid grid-cols-3 gap-2">
+            {grades.filter(g => g.level === 'dimotiko').map(grade => (
+              <button
+                key={grade.id}
+                onClick={() => onToggle(grade.id)}
+                className={`p-3 rounded-xl text-center transition-all ${
+                  isSelected(grade.id)
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-sm font-medium">{grade.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Γυμνάσιο */}
+        <div>
+          <p className="text-xs text-cyan-600 uppercase font-semibold mb-2">🏛️ Γυμνάσιο</p>
+          <div className="grid grid-cols-3 gap-2">
+            {grades.filter(g => g.level === 'gymnasio').map(grade => (
+              <button
+                key={grade.id}
+                onClick={() => onToggle(grade.id)}
+                className={`p-3 rounded-xl text-center transition-all ${
+                  isSelected(grade.id)
+                    ? 'bg-cyan-500 text-white'
+                    : 'bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-sm font-medium">{grade.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Λύκειο */}
+        <div>
+          <p className="text-xs text-indigo-600 uppercase font-semibold mb-2">🎓 Λύκειο</p>
+          <div className="grid grid-cols-3 gap-2">
+            {grades.filter(g => g.level === 'lykeio').map(grade => (
+              <button
+                key={grade.id}
+                onClick={() => onToggle(grade.id)}
+                className={`p-3 rounded-xl text-center transition-all ${
+                  isSelected(grade.id)
+                    ? 'bg-indigo-500 text-white'
+                    : 'bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-sm font-medium">{grade.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -218,7 +331,7 @@ export default function OnboardingPage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* Step 1: User Type */}
+          {/* ==================== STEP 1: USER TYPE ==================== */}
           {step === 1 && (
             <motion.div
               key="step1"
@@ -233,37 +346,56 @@ export default function OnboardingPage() {
               </h2>
               <p className="text-gray-500 mb-6">Ποιος είσαι;</p>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
                 <button
                   onClick={() => setUserType('student')}
-                  className={`p-6 rounded-xl transition-all ${
+                  className={`w-full p-5 rounded-xl flex items-center gap-4 transition-all ${
                     userType === 'student'
                       ? 'bg-purple-100 ring-2 ring-purple-500'
                       : 'bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
-                  <span className="text-4xl">👨‍🎓</span>
-                  <p className="font-semibold mt-2">Μαθητής</p>
-                  <p className="text-xs text-gray-500">Μάθηση & Εξάσκηση</p>
+                  <span className="text-3xl">👨‍🎓</span>
+                  <div className="text-left">
+                    <p className="font-bold">Είμαι Μαθητής</p>
+                    <p className="text-xs text-gray-500">Δημοτικό, Γυμνάσιο ή Λύκειο</p>
+                  </div>
                 </button>
-                
+
                 <button
                   onClick={() => setUserType('teacher')}
-                  className={`p-6 rounded-xl transition-all ${
+                  className={`w-full p-5 rounded-xl flex items-center gap-4 transition-all ${
                     userType === 'teacher'
                       ? 'bg-purple-100 ring-2 ring-purple-500'
                       : 'bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
-                  <span className="text-4xl">👩‍🏫</span>
-                  <p className="font-semibold mt-2">Εκπαιδευτικός</p>
-                  <p className="text-xs text-gray-500">Εργαλεία & Μαθητές</p>
+                  <span className="text-3xl">👨‍🏫</span>
+                  <div className="text-left">
+                    <p className="font-bold">Είμαι Εκπαιδευτικός</p>
+                    <p className="text-xs text-gray-500">AI εργαλεία για την τάξη</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setUserType('parent')}
+                  className={`w-full p-5 rounded-xl flex items-center gap-4 transition-all ${
+                    userType === 'parent'
+                      ? 'bg-purple-100 ring-2 ring-purple-500'
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <span className="text-3xl">👨‍👩‍👧</span>
+                  <div className="text-left">
+                    <p className="font-bold">Είμαι Γονέας</p>
+                    <p className="text-xs text-gray-500">Παρακολούθηση προόδου παιδιών</p>
+                  </div>
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* STUDENT FLOW */}
+          {/* ==================== STUDENT FLOW ==================== */}
           {/* Step 2 (Student): Grade Selection */}
           {step === 2 && userType === 'student' && (
             <motion.div
@@ -275,34 +407,13 @@ export default function OnboardingPage() {
               <h2 className="text-xl font-bold text-gray-800 mb-2 text-center">
                 Σε ποια τάξη είσαι;
               </h2>
-              <p className="text-gray-500 text-center mb-6">
-                Αυτό μας βοηθάει να προσαρμόσουμε το περιεχόμενο
-              </p>
+              <p className="text-gray-500 text-center mb-6">Επίλεξε την τάξη σου</p>
               
-              <div className="space-y-2 max-h-80 overflow-y-auto">
-                {['dimotiko', 'gymnasio', 'lykeio'].map(level => (
-                  <div key={level} className="mb-4">
-                    <p className="text-xs text-gray-400 uppercase mb-2">
-                      {level === 'dimotiko' ? 'Δημοτικό' : level === 'gymnasio' ? 'Γυμνάσιο' : 'Λύκειο'}
-                    </p>
-                    <div className="space-y-2">
-                      {grades.filter(g => g.level === level).map(grade => (
-                        <button
-                          key={grade.id}
-                          onClick={() => setSelectedGrade(grade.id)}
-                          className={`w-full p-3 rounded-xl text-left transition-all ${
-                            selectedGrade === grade.id
-                              ? 'bg-purple-100 ring-2 ring-purple-500'
-                              : 'bg-gray-50 hover:bg-gray-100'
-                          }`}
-                        >
-                          <span className="font-medium">{grade.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <GradeSelector 
+                selectedGrades={selectedGrade}
+                onToggle={(id) => setSelectedGrade(id)}
+                multiSelect={false}
+              />
             </motion.div>
           )}
 
@@ -370,7 +481,41 @@ export default function OnboardingPage() {
             </motion.div>
           )}
 
-          {/* TEACHER FLOW */}
+          {/* Step 5 (Student): Ready! */}
+          {step === 5 && userType === 'student' && (
+            <motion.div
+              key="step5-student"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="text-center"
+            >
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Είσαι έτοιμος!
+              </h2>
+              <p className="text-gray-500 mb-6">
+                Ας ξεκινήσουμε την περιπέτεια της μάθησης
+              </p>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-purple-50 rounded-xl p-4">
+                  <span className="text-2xl">🤖</span>
+                  <p className="text-xs text-gray-600 mt-2">AI Δάσκαλος</p>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-4">
+                  <span className="text-2xl">🎯</span>
+                  <p className="text-xs text-gray-600 mt-2">Badges</p>
+                </div>
+                <div className="bg-green-50 rounded-xl p-4">
+                  <span className="text-2xl">📚</span>
+                  <p className="text-xs text-gray-600 mt-2">5 Ενότητες</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ==================== TEACHER FLOW ==================== */}
           {/* Step 2 (Teacher): Subjects */}
           {step === 2 && userType === 'teacher' && (
             <motion.div
@@ -416,30 +561,11 @@ export default function OnboardingPage() {
               </h2>
               <p className="text-gray-500 text-center mb-6">Επιλέξτε όλες τις σχετικές</p>
               
-              <div className="space-y-2 max-h-80 overflow-y-auto">
-                {['dimotiko', 'gymnasio', 'lykeio'].map(level => (
-                  <div key={level} className="mb-4">
-                    <p className="text-xs text-gray-400 uppercase mb-2">
-                      {level === 'dimotiko' ? 'Δημοτικό' : level === 'gymnasio' ? 'Γυμνάσιο' : 'Λύκειο'}
-                    </p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {grades.filter(g => g.level === level).map(grade => (
-                        <button
-                          key={grade.id}
-                          onClick={() => toggleTeachingGrade(grade.id)}
-                          className={`p-2 rounded-lg text-center text-sm transition-all ${
-                            teachingGrades.includes(grade.id)
-                              ? 'bg-purple-100 ring-2 ring-purple-500'
-                              : 'bg-gray-50 hover:bg-gray-100'
-                          }`}
-                        >
-                          {grade.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <GradeSelector 
+                selectedGrades={teachingGrades}
+                onToggle={toggleTeachingGrade}
+                multiSelect={true}
+              />
             </motion.div>
           )}
 
@@ -481,10 +607,32 @@ export default function OnboardingPage() {
             </motion.div>
           )}
 
-          {/* Step 5 (Student): Ready! */}
-          {step === 5 && userType === 'student' && (
+          {/* ==================== PARENT FLOW ==================== */}
+          {/* Step 2 (Parent): Children's Grades */}
+          {step === 2 && userType === 'parent' && (
             <motion.div
-              key="step5-student"
+              key="step2-parent"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <h2 className="text-xl font-bold text-gray-800 mb-2 text-center">
+                Σε ποιες τάξεις είναι τα παιδιά σας;
+              </h2>
+              <p className="text-gray-500 text-center mb-6">Επιλέξτε όλες τις σχετικές</p>
+              
+              <GradeSelector 
+                selectedGrades={childrenGrades}
+                onToggle={toggleChildrenGrade}
+                multiSelect={true}
+              />
+            </motion.div>
+          )}
+
+          {/* Step 3 (Parent): Ready! */}
+          {step === 3 && userType === 'parent' && (
+            <motion.div
+              key="step3-parent"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -492,26 +640,34 @@ export default function OnboardingPage() {
             >
               <div className="text-6xl mb-4">🎉</div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Είσαι έτοιμος!
+                Είστε έτοιμοι!
               </h2>
               <p className="text-gray-500 mb-6">
-                Ας ξεκινήσουμε την περιπέτεια της μάθησης
+                Παρακολουθήστε την πρόοδο των παιδιών σας
               </p>
               
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-purple-50 rounded-xl p-4">
-                  <span className="text-2xl">🤖</span>
-                  <p className="text-xs text-gray-600 mt-2">AI Δάσκαλος</p>
-                </div>
-                <div className="bg-blue-50 rounded-xl p-4">
-                  <span className="text-2xl">🎯</span>
-                  <p className="text-xs text-gray-600 mt-2">Badges</p>
+                  <span className="text-2xl">📊</span>
+                  <p className="text-sm font-medium mt-2">Πρόοδος</p>
                 </div>
                 <div className="bg-green-50 rounded-xl p-4">
-                  <span className="text-2xl">📚</span>
-                  <p className="text-xs text-gray-600 mt-2">5 Ενότητες</p>
+                  <span className="text-2xl">🏆</span>
+                  <p className="text-sm font-medium mt-2">Επιτεύγματα</p>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-4">
+                  <span className="text-2xl">📅</span>
+                  <p className="text-sm font-medium mt-2">Δραστηριότητα</p>
+                </div>
+                <div className="bg-pink-50 rounded-xl p-4">
+                  <span className="text-2xl">💡</span>
+                  <p className="text-sm font-medium mt-2">Προτάσεις</p>
                 </div>
               </div>
+
+              <p className="text-xs text-gray-400">
+                Σύντομα θα μπορείτε να συνδέσετε τους λογαριασμούς των παιδιών σας
+              </p>
             </motion.div>
           )}
         </AnimatePresence>

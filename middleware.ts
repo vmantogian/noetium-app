@@ -45,10 +45,20 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Helper function to redirect based on user type
+  const redirectToDashboard = async (profile: any) => {
+    if (profile?.user_type === 'teacher') {
+      return NextResponse.redirect(new URL('/teacher', request.url));
+    } else if (profile?.user_type === 'parent') {
+      return NextResponse.redirect(new URL('/parent', request.url));
+    } else {
+      return NextResponse.redirect(new URL('/student', request.url));
+    }
+  };
+
   // Root redirect
   if (pathname === '/') {
     if (user) {
-      // Check user type and redirect accordingly
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('user_type, onboarding_completed')
@@ -59,12 +69,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/onboarding', request.url));
       }
 
-      // Redirect based on user type
-      if (profile?.user_type === 'teacher') {
-        return NextResponse.redirect(new URL('/teacher', request.url));
-      } else {
-        return NextResponse.redirect(new URL('/student', request.url));
-      }
+      return redirectToDashboard(profile);
     } else {
       return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -85,10 +90,7 @@ export async function middleware(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    if (profile?.user_type === 'teacher') {
-      return NextResponse.redirect(new URL('/teacher', request.url));
-    }
-    return NextResponse.redirect(new URL('/student', request.url));
+    return redirectToDashboard(profile);
   }
 
   // Check onboarding status for authenticated users
@@ -106,11 +108,22 @@ export async function middleware(request: NextRequest) {
 
     // Check teacher access
     if (pathname.startsWith('/teacher')) {
-      // Allow if user is teacher OR has can_access_teacher flag
       if (profile.user_type !== 'teacher' && !profile.can_access_teacher) {
-        // Redirect students trying to access teacher area
-        return NextResponse.redirect(new URL('/student', request.url));
+        return redirectToDashboard(profile);
       }
+    }
+
+    // Check parent access
+    if (pathname.startsWith('/parent')) {
+      if (profile.user_type !== 'parent') {
+        return redirectToDashboard(profile);
+      }
+    }
+
+    // Check student access (optional - students shouldn't access teacher/parent areas)
+    if (pathname.startsWith('/student')) {
+      // Allow all user types to access student area for now
+      // Or restrict: if (profile.user_type !== 'student') { return redirectToDashboard(profile); }
     }
   }
 
