@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-// GET - Fetch user's overall stats for dashboard
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -12,21 +13,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get total completed activities
-    const { count: totalActivities } = await supabase
-      .from('user_progress')
-      .select('*', { count: 'exact', head: true })
+    // Get user profile
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('*')
       .eq('user_id', user.id)
-      .eq('completed', true);
+      .single();
 
-    // Get today's activities
-    const today = new Date().toISOString().split('T')[0];
-    const { count: todayActivities } = await supabase
+    // Get all progress entries
+    const { data: progress } = await supabase
       .from('user_progress')
-      .select('*', { count: 'exact', head: true })
+      .select('*')
       .eq('user_id', user.id)
-      .eq('completed', true)
-      .gte('created_at', today);
+      .order('created_at', { ascending: false });
 
     // Get badges count
     const { count: badgesCount } = await supabase
@@ -34,58 +33,71 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
-    // Get current streak (use general or highest)
-    const { data: streaks } = await supabase
-      .from('user_streaks')
-      .select('*')
-      .eq('user_id', user.id);
+    // Calculate stats
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(today.getDate() - today.getDay());
+    
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const currentStreak = streaks?.reduce((max, s) => Math.max(max, s.current_streak), 0) || 0;
-    const longestStreak = streaks?.reduce((max, s) => Math.max(max, s.longest_streak), 0) || 0;
+    // Calculate streak
+    let streak = 0;
+    if (progress && progress.length > 0) {
+      const dates = progress.map(p => {
+        const d = new Date(p.created_at);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      });
+      
+      const uniqueDates = [...new Set(dates)].sort((a, b) => b - a);
+      
+      for (let i = 0; i < uniqueDates.length; i++) {
+        const expectedDate = new Date(today);
+        expectedDate.setDate(today.getDate() - i);
+        expectedDate.setHours(0, 0, 0, 0);
+        
+        if (uniqueDates[i] === expectedDate.getTime()) {
+          streak++;
+        } else {
+          break;
+        }
+      }
+    }
 
-    // Get activity counts by feature
-    const { data: progressByFeature } = await supabase
-      .from('user_progress')
-      .select('feature')
-      .eq('user_id', user.id)
-      .eq('completed', true);
-
-    const featureCounts: Record<string, number> = {};
-    progressByFeature?.forEach((p: any) => {
-      featureCounts[p.feature] = (featureCounts[p.feature] || 0) + 1;
+    // Activity breakdown by feature
+    const activityByFeature: Record<string, number> = {};
+    progress?.forEach(p => {
+      activityByFeature[p.feature] = (activityByFeature[p.feature] || 0) + 1;
     });
 
-    // Get recent badges
-    const { data: recentBadges } = await supabase
-      .from('user_badges')
-      .select(`
-        earned_at,
-        badge_definitions (
-          id,
-          name,
-          name_el,
-          icon,
-          rarity
-        )
-      `)
-      .eq('user_id', user.id)
-      .order('earned_at', { ascending: false })
-      .limit(5);
+    // Weekly activity
+    const weeklyActivity = progress?.filter(p => 
+      new Date(p.created_at) >= thisWeekStart
+    ).length || 0;
+
+    // Monthly activity
+    const monthlyActivity = progress?.filter(p => 
+      new Date(p.created_at) >= thisMonthStart
+    ).length || 0;
+
+    // Total points (estimate based on activities)
+    const totalPoints = (progress?.length || 0) * 10 + (badgesCount || 0) * 50;
 
     return NextResponse.json({
+      profile: profile || {},
       stats: {
-        totalActivities: totalActivities || 0,
-        todayActivities: todayActivities || 0,
-        badgesCount: badgesCount || 0,
-        currentStreak,
-        longestStreak,
-        featureCounts,
-      },
-      recentBadges: recentBadges?.map((b: any) => ({
-        ...b.badge_definitions,
-        earnedAt: b.earned_at
-      })) || []
+        totalActivities: progress?.length || 0,
+        weeklyActivity,
+        monthlyActivity,
+        streak,
+        badgesEarned: badgesCount || 0,
+        totalPoints,
+        activityByFeature
+      }
     });
+
   } catch (error) {
     console.error('Stats GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

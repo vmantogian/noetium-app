@@ -1,42 +1,119 @@
+import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
-// GET - Get user's mindfulness progress
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    const supabase = await createClient();
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data, error } = await supabase
-      .from('mindfulness_progress')
+    // Get mindfulness progress
+    const { data: progress, error } = await supabase
+      .from('user_progress')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
+      .eq('feature', 'mindfulness')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Progress fetch error:', error);
+      return NextResponse.json({ error: 'Failed to fetch progress' }, { status: 500 });
+    }
+
+    // Calculate streak
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let streak = 0;
+    if (progress && progress.length > 0) {
+      const dates = progress.map(p => {
+        const d = new Date(p.created_at);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      });
+      
+      const uniqueDates = [...new Set(dates)].sort((a, b) => b - a);
+      
+      for (let i = 0; i < uniqueDates.length; i++) {
+        const expectedDate = new Date(today);
+        expectedDate.setDate(today.getDate() - i);
+        expectedDate.setHours(0, 0, 0, 0);
+        
+        if (uniqueDates[i] === expectedDate.getTime()) {
+          streak++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    // Get total sessions
+    const totalSessions = progress?.length || 0;
+    
+    // Get total minutes
+    const totalMinutes = progress?.reduce((sum, p) => {
+      return sum + (p.metadata?.duration_minutes || 0);
+    }, 0) || 0;
+
+    return NextResponse.json({
+      progress: progress || [],
+      stats: {
+        streak,
+        totalSessions,
+        totalMinutes
+      }
+    });
+
+  } catch (error) {
+    console.error('Progress fetch error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { activityType, activityId, durationMinutes, mood, notes } = await request.json();
+
+    const { data: newProgress, error } = await supabase
+      .from('user_progress')
+      .insert({
+        user_id: user.id,
+        feature: 'mindfulness',
+        activity_type: activityType || 'session',
+        activity_id: activityId,
+        completed: true,
+        metadata: {
+          duration_minutes: durationMinutes,
+          mood,
+          notes
+        }
+      })
+      .select()
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    if (error) {
+      console.error('Progress save error:', error);
+      return NextResponse.json({ error: 'Failed to save progress' }, { status: 500 });
+    }
 
-    // Return defaults if no progress exists yet
-    const progress = data || {
-      current_streak: 0,
-      longest_streak: 0,
-      total_minutes: 0,
-      total_sessions: 0,
-      last_practice: null,
-      exercise_stats: {}
-    };
+    return NextResponse.json({ progress: newProgress });
 
-    return NextResponse.json({ progress });
-  } catch (error: any) {
-    console.error('Progress fetch error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('Progress POST error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
