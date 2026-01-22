@@ -22,18 +22,19 @@ interface Badge {
   earnedAt: string;
 }
 
+const defaultStats: Stats = {
+  totalActivities: 0,
+  todayActivities: 0,
+  badgesCount: 0,
+  currentStreak: 0,
+  longestStreak: 0,
+  featureCounts: {}
+};
+
 export default function StudentDashboard() {
-  const [stats, setStats] = useState<Stats>({
-    totalActivities: 0,
-    todayActivities: 0,
-    badgesCount: 0,
-    currentStreak: 0,
-    longestStreak: 0,
-    featureCounts: {}
-  });
+  const [stats, setStats] = useState<Stats>(defaultStats);
   const [recentBadges, setRecentBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     fetchStats();
@@ -44,8 +45,21 @@ export default function StudentDashboard() {
       const response = await fetch('/api/stats');
       if (response.ok) {
         const data = await response.json();
-        setStats(data.stats);
-        setRecentBadges(data.recentBadges);
+        // Safely set stats with fallback to defaults
+        if (data?.stats) {
+          setStats({
+            totalActivities: data.stats.totalActivities ?? 0,
+            todayActivities: data.stats.todayActivities ?? data.stats.weeklyActivity ?? 0,
+            badgesCount: data.stats.badgesCount ?? data.stats.badgesEarned ?? 0,
+            currentStreak: data.stats.currentStreak ?? data.stats.streak ?? 0,
+            longestStreak: data.stats.longestStreak ?? 0,
+            featureCounts: data.stats.featureCounts ?? data.stats.activityByFeature ?? {}
+          });
+        }
+        // Safely set badges
+        if (data?.recentBadges && Array.isArray(data.recentBadges)) {
+          setRecentBadges(data.recentBadges);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -81,8 +95,19 @@ export default function StudentDashboard() {
     return 'Καληνύχτα';
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4 animate-bounce">🎓</div>
+          <p className="text-gray-600 font-medium">Φόρτωση...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white pb-20 md:pb-8">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Welcome Header */}
         <div className="mb-8">
@@ -197,7 +222,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Recent Badges */}
-        {recentBadges.length > 0 && (
+        {recentBadges && recentBadges.length > 0 && (
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">🏆 Πρόσφατα Badges</h2>
             <div className="bg-white rounded-2xl p-4 shadow-sm">
@@ -210,8 +235,8 @@ export default function StudentDashboard() {
                     transition={{ delay: i * 0.1 }}
                     className="flex-shrink-0 text-center p-3 bg-purple-50 rounded-xl"
                   >
-                    <span className="text-3xl">{badge.icon}</span>
-                    <p className="text-xs text-gray-600 mt-1">{badge.name_el || badge.name}</p>
+                    <span className="text-3xl">{badge.icon || '🏅'}</span>
+                    <p className="text-xs text-gray-600 mt-1">{badge.name_el || badge.name || 'Badge'}</p>
                   </motion.div>
                 ))}
               </div>
@@ -266,6 +291,28 @@ export default function StudentDashboard() {
           </div>
         </motion.div>
       </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        <div className="flex justify-around py-2">
+          <Link href="/student" className="flex flex-col items-center px-3 py-1 text-purple-600">
+            <span className="text-xl">🏠</span>
+            <span className="text-xs mt-1 font-medium">Αρχική</span>
+          </Link>
+          <Link href="/enrichment" className="flex flex-col items-center px-3 py-1 text-gray-600">
+            <span className="text-xl">🌟</span>
+            <span className="text-xs mt-1 font-medium">Μάθηση</span>
+          </Link>
+          <Link href="/chat" className="flex flex-col items-center px-3 py-1 text-gray-600">
+            <span className="text-xl">🤖</span>
+            <span className="text-xs mt-1 font-medium">AI</span>
+          </Link>
+          <Link href="/profile" className="flex flex-col items-center px-3 py-1 text-gray-600">
+            <span className="text-xl">👤</span>
+            <span className="text-xs mt-1 font-medium">Προφίλ</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }
