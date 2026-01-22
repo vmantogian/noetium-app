@@ -22,15 +22,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    // Option 1: Search existing textbook images first
+    // Option 1: Search existing textbook images first (image descriptions in educational_content)
     if (searchExisting) {
-      const existingImage = await searchTextbookImages(supabase, prompt, subject);
+      const existingImage = await searchTextbookImageDescriptions(supabase, prompt, subject);
       if (existingImage) {
         return NextResponse.json({
-          imageUrl: existingImage.url,
+          description: existingImage.content,
           source: 'textbook',
-          description: existingImage.description,
-          sourceTitle: existingImage.source_title
+          sourceTitle: existingImage.source_title,
+          message: 'Βρέθηκε σχετική εικόνα στα σχολικά βιβλία'
         });
       }
     }
@@ -47,8 +47,10 @@ export async function POST(request: NextRequest) {
       style: style === 'realistic' ? 'natural' : 'vivid',
     });
 
-    const imageUrl = response.data[0]?.url;
-    const revisedPrompt = response.data[0]?.revised_prompt;
+    // Safely access response data with optional chaining
+    const imageData = response.data?.[0];
+    const imageUrl = imageData?.url;
+    const revisedPrompt = imageData?.revised_prompt;
 
     if (!imageUrl) {
       return NextResponse.json({ error: 'Failed to generate image' }, { status: 500 });
@@ -90,16 +92,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Search existing textbook images in database
-async function searchTextbookImages(
+// Search existing image descriptions in educational_content
+async function searchTextbookImageDescriptions(
   supabase: any, 
   query: string, 
   subject?: string
-): Promise<{ url: string; description: string; source_title: string } | null> {
+): Promise<{ content: string; source_title: string } | null> {
   try {
     // Generate embedding for the query
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-    
     const embeddingResponse = await openai.embeddings.create({
       model: 'text-embedding-3-small',
       input: query,
@@ -107,12 +107,13 @@ async function searchTextbookImages(
     
     const embedding = embeddingResponse.data[0].embedding;
 
-    // Search for similar images in the database
-    const { data, error } = await supabase.rpc('search_textbook_images', {
+    // Search for image descriptions in educational_content
+    const { data, error } = await supabase.rpc('search_educational_content', {
       query_embedding: embedding,
       match_threshold: 0.7,
       match_count: 1,
-      filter_subject: subject || null
+      filter_subject: subject || null,
+      filter_content_type: 'image_description'  // Only search image descriptions
     });
 
     if (error || !data || data.length === 0) {
@@ -120,8 +121,7 @@ async function searchTextbookImages(
     }
 
     return {
-      url: data[0].image_url,
-      description: data[0].description,
+      content: data[0].content,
       source_title: data[0].source_title
     };
   } catch (error) {
