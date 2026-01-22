@@ -210,19 +210,23 @@ function EmotionPicker({ emotions, selectedEmotion, onSelect, locale, variant = 
           const radius = 100;
           const x = 50 + radius * Math.cos(angle) * 0.9;
           const y = 50 + radius * Math.sin(angle) * 0.9;
+          const isSelected = selectedEmotion === emotion.id;
           
           return (
             <motion.button
               key={emotion.id}
               className={`absolute w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-md transition-all ${
-                selectedEmotion === emotion.id ? 'ring-4 ring-offset-2 scale-110' : ''
+                isSelected ? 'ring-4 ring-offset-2 scale-110' : ''
               }`}
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
                 transform: 'translate(-50%, -50%)',
                 backgroundColor: emotion.color,
-                ringColor: emotion.color
+                // Use boxShadow for ring effect when selected
+                boxShadow: isSelected 
+                  ? `0 0 0 4px white, 0 0 0 8px ${emotion.color}` 
+                  : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
               }}
               onClick={() => onSelect(emotion.id)}
               whileHover={{ scale: 1.15 }}
@@ -249,125 +253,141 @@ function EmotionPicker({ emotions, selectedEmotion, onSelect, locale, variant = 
       </div>
     );
   }
-  
-  // Grid layout
+
+  // Default grid layout
   return (
     <div className="grid grid-cols-4 gap-3">
-      {emotions.map((emotion) => (
-        <motion.button
-          key={emotion.id}
-          className={`flex flex-col items-center p-3 rounded-xl transition-all ${
-            selectedEmotion === emotion.id 
-              ? 'ring-2 ring-offset-2 shadow-lg' 
-              : 'hover:bg-gray-50'
-          }`}
-          style={{
-            backgroundColor: selectedEmotion === emotion.id ? `${emotion.color}20` : undefined,
-            ringColor: emotion.color
-          }}
-          onClick={() => onSelect(emotion.id)}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <span className="text-3xl mb-1">{emotion.emoji}</span>
-          <span className={`text-xs text-center ${
-            selectedEmotion === emotion.id ? 'font-medium' : 'text-gray-600'
-          }`}>
-            {locale === 'el' ? emotion.labelEl : emotion.labelEn}
-          </span>
-        </motion.button>
-      ))}
+      {emotions.map((emotion) => {
+        const isSelected = selectedEmotion === emotion.id;
+        return (
+          <motion.button
+            key={emotion.id}
+            className={`p-3 rounded-xl flex flex-col items-center gap-1 transition-all ${
+              isSelected ? 'ring-2 ring-offset-2' : 'hover:bg-gray-50'
+            }`}
+            style={{
+              backgroundColor: isSelected ? `${emotion.color}20` : undefined,
+              // Use boxShadow instead of ringColor for the ring effect
+              boxShadow: isSelected ? `0 0 0 2px ${emotion.color}` : undefined
+            }}
+            onClick={() => onSelect(emotion.id)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <span className="text-3xl">{emotion.emoji}</span>
+            <span className="text-xs text-gray-600">
+              {locale === 'el' ? emotion.labelEl : emotion.labelEn}
+            </span>
+          </motion.button>
+        );
+      })}
     </div>
   );
 }
+
+// ============================================================================
+// Intensity Slider
+// ============================================================================
 
 interface IntensitySliderProps {
   value: number;
   onChange: (value: number) => void;
-  color: string;
   locale: 'en' | 'el';
+  color?: string;
 }
 
-function IntensitySlider({ value, onChange, color, locale }: IntensitySliderProps) {
+function IntensitySlider({ value, onChange, locale, color = '#4ADE80' }: IntensitySliderProps) {
   const labels = {
     en: ['Very Low', 'Low', 'Medium', 'High', 'Very High'],
-    el: ['Πολύ Χαμηλή', 'Χαμηλή', 'Μέτρια', 'Υψηλή', 'Πολύ Υψηλή']
+    el: ['Πολύ χαμηλή', 'Χαμηλή', 'Μέτρια', 'Υψηλή', 'Πολύ υψηλή']
   };
-  
+
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between text-sm text-gray-500">
-        <span>{locale === 'el' ? 'Ένταση' : 'Intensity'}</span>
-        <span style={{ color }}>{labels[locale][value - 1]}</span>
-      </div>
-      
-      <div className="flex gap-2">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
         {[1, 2, 3, 4, 5].map((level) => (
           <motion.button
             key={level}
-            className={`flex-1 h-12 rounded-lg transition-all ${
-              value >= level ? 'shadow-md' : 'bg-gray-100'
+            className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-medium transition-all ${
+              value === level ? 'text-white scale-110' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
             }`}
             style={{
-              backgroundColor: value >= level ? color : undefined,
-              opacity: value >= level ? 0.3 + (level * 0.15) : 1
+              backgroundColor: value === level ? color : undefined,
+              boxShadow: value === level ? `0 4px 14px ${color}40` : undefined
             }}
             onClick={() => onChange(level)}
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: value === level ? 1.1 : 1.05 }}
             whileTap={{ scale: 0.95 }}
-          />
+          >
+            {level}
+          </motion.button>
         ))}
+      </div>
+      
+      <div className="text-center">
+        <span className="text-sm text-gray-500">
+          {labels[locale][value - 1]}
+        </span>
       </div>
     </div>
   );
 }
+
+// ============================================================================
+// Body Map Component
+// ============================================================================
 
 interface BodyMapProps {
   selectedLocations: string[];
   onToggle: (location: string) => void;
   locale: 'en' | 'el';
-  color: string;
+  color?: string;
 }
 
-function BodyMap({ selectedLocations, onToggle, locale, color }: BodyMapProps) {
+function BodyMap({ selectedLocations, onToggle, locale, color = '#4ADE80' }: BodyMapProps) {
   return (
-    <div className="relative w-48 h-80 mx-auto">
-      {/* Simple body outline SVG */}
-      <svg viewBox="0 0 100 160" className="w-full h-full">
-        {/* Head */}
-        <circle cx="50" cy="15" r="12" fill="#E5E7EB" stroke="#9CA3AF" strokeWidth="1"/>
-        {/* Body */}
-        <ellipse cx="50" cy="55" rx="20" ry="30" fill="#E5E7EB" stroke="#9CA3AF" strokeWidth="1"/>
-        {/* Arms */}
-        <ellipse cx="22" cy="50" rx="8" ry="20" fill="#E5E7EB" stroke="#9CA3AF" strokeWidth="1"/>
-        <ellipse cx="78" cy="50" rx="8" ry="20" fill="#E5E7EB" stroke="#9CA3AF" strokeWidth="1"/>
-        {/* Legs */}
-        <ellipse cx="40" cy="110" rx="8" ry="30" fill="#E5E7EB" stroke="#9CA3AF" strokeWidth="1"/>
-        <ellipse cx="60" cy="110" rx="8" ry="30" fill="#E5E7EB" stroke="#9CA3AF" strokeWidth="1"/>
-      </svg>
+    <div className="relative w-48 h-72 mx-auto">
+      {/* Simple body silhouette using CSS */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <svg viewBox="0 0 100 150" className="w-full h-full text-gray-200">
+          {/* Head */}
+          <circle cx="50" cy="15" r="12" fill="currentColor" />
+          {/* Body */}
+          <ellipse cx="50" cy="55" rx="20" ry="30" fill="currentColor" />
+          {/* Arms */}
+          <ellipse cx="22" cy="55" rx="8" ry="25" fill="currentColor" />
+          <ellipse cx="78" cy="55" rx="8" ry="25" fill="currentColor" />
+          {/* Legs */}
+          <ellipse cx="40" cy="115" rx="10" ry="35" fill="currentColor" />
+          <ellipse cx="60" cy="115" rx="10" ry="35" fill="currentColor" />
+        </svg>
+      </div>
       
-      {/* Clickable hotspots */}
-      {BODY_LOCATIONS.map((location) => (
-        <motion.button
-          key={location.id}
-          className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
-            selectedLocations.includes(location.id)
-              ? 'text-white shadow-lg'
-              : 'bg-white/80 text-gray-600 hover:bg-gray-100'
-          }`}
-          style={{
-            left: `${location.x}%`,
-            top: `${location.y}%`,
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: selectedLocations.includes(location.id) ? color : undefined
-          }}
-          onClick={() => onToggle(location.id)}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {selectedLocations.includes(location.id) ? '✓' : '+'}
-        </motion.button>
-      ))}
+      {/* Interactive points */}
+      {BODY_LOCATIONS.map((location) => {
+        const isSelected = selectedLocations.includes(location.id);
+        return (
+          <motion.button
+            key={location.id}
+            className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
+              isSelected ? 'text-white' : 'bg-white border-2 border-gray-300 text-gray-500'
+            }`}
+            style={{
+              left: `${location.x}%`,
+              top: `${location.y}%`,
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: isSelected ? color : undefined,
+              borderColor: isSelected ? color : undefined
+            }}
+            onClick={() => onToggle(location.id)}
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.9 }}
+            title={locale === 'el' ? location.labelEl : location.labelEn}
+          >
+            {isSelected ? '✓' : ''}
+          </motion.button>
+        );
+      })}
     </div>
   );
 }
@@ -384,96 +404,81 @@ export function EmotionCheckIn({
   showBodyMap = true,
   className = ''
 }: EmotionCheckInProps) {
-  // State
   const [step, setStep] = useState(1);
-  const [primaryEmotion, setPrimaryEmotion] = useState<Emotion | null>(null);
+  const [primaryEmotion, setPrimaryEmotion] = useState<Emotion | undefined>();
   const [intensity, setIntensity] = useState(3);
-  const [secondaryEmotion, setSecondaryEmotion] = useState<Emotion | null>(null);
+  const [secondaryEmotion, setSecondaryEmotion] = useState<Emotion | undefined>();
   const [bodyLocations, setBodyLocations] = useState<string[]>([]);
   const [trigger, setTrigger] = useState('');
   const [notes, setNotes] = useState('');
-  
-  // Get selected emotion data
+
   const selectedEmotionData = EMOTIONS.find(e => e.id === primaryEmotion);
-  
-  // Total steps based on variant
-  const totalSteps = variant === 'quick' ? 2 : variant === 'simple' ? 3 : 5;
-  
-  // Handle body location toggle
+
+  // Calculate total steps based on variant
+  const getTotalSteps = () => {
+    if (variant === 'quick') return 1;
+    if (variant === 'simple') return 2;
+    return showBodyMap ? 5 : 4;
+  };
+  const totalSteps = getTotalSteps();
+
   const toggleBodyLocation = (location: string) => {
-    setBodyLocations(prev => 
-      prev.includes(location) 
+    setBodyLocations(prev =>
+      prev.includes(location)
         ? prev.filter(l => l !== location)
         : [...prev, location]
     );
   };
-  
-  // Handle completion
-  const handleComplete = () => {
-    if (!primaryEmotion) return;
-    
-    onComplete({
-      primaryEmotion,
-      intensity,
-      secondaryEmotion: secondaryEmotion || undefined,
-      bodyLocations,
-      trigger: trigger || undefined,
-      notes: notes || undefined,
-      timestamp: new Date()
-    });
-  };
-  
-  // Can proceed to next step
+
   const canProceed = () => {
-    switch (step) {
-      case 1: return !!primaryEmotion;
-      case 2: return true; // Intensity always has a default
-      default: return true;
-    }
+    if (step === 1) return !!primaryEmotion;
+    return true;
   };
-  
-  // Next step
+
   const nextStep = () => {
     if (step === totalSteps) {
-      handleComplete();
+      // Complete check-in
+      onComplete({
+        primaryEmotion: primaryEmotion!,
+        intensity,
+        secondaryEmotion,
+        bodyLocations,
+        trigger: trigger || undefined,
+        notes: notes || undefined,
+        timestamp: new Date()
+      });
     } else {
-      setStep(prev => prev + 1);
+      setStep(step + 1);
     }
   };
-  
-  // Previous step
+
   const prevStep = () => {
-    if (step === 1 && onCancel) {
-      onCancel();
+    if (step === 1) {
+      onCancel?.();
     } else {
-      setStep(prev => Math.max(1, prev - 1));
+      setStep(step - 1);
     }
   };
 
   return (
-    <div className={`bg-white rounded-2xl shadow-xl p-6 max-w-lg mx-auto ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-800">
-          {locale === 'el' ? 'Πώς νιώθεις;' : 'How are you feeling?'}
-        </h2>
-        
-        {/* Progress */}
-        <div className="flex gap-1">
+    <div className={`bg-white rounded-2xl p-6 ${className}`}>
+      {/* Progress indicator */}
+      {variant !== 'quick' && (
+        <div className="flex gap-2 mb-6">
           {Array.from({ length: totalSteps }).map((_, i) => (
             <div
               key={i}
-              className={`w-2 h-2 rounded-full ${
-                i < step ? 'bg-teal-500' : 'bg-gray-200'
-              }`}
+              className="flex-1 h-1 rounded-full transition-all"
+              style={{
+                backgroundColor: i < step ? (selectedEmotionData?.color || '#4ADE80') : '#E5E7EB'
+              }}
             />
           ))}
         </div>
-      </div>
-      
-      {/* Content */}
+      )}
+
       <AnimatePresence mode="wait">
-        {/* Step 1: Select Emotion */}
+        {/* Step 1: Primary Emotion */}
         {step === 1 && (
           <motion.div
             key="step1"
@@ -482,26 +487,23 @@ export function EmotionCheckIn({
             exit={{ opacity: 0, x: -20 }}
             className="space-y-4"
           >
-            <p className="text-gray-600 text-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 text-center">
+              {locale === 'el' ? 'Πώς νιώθεις τώρα;' : 'How are you feeling?'}
+            </h2>
+            <p className="text-gray-500 text-center text-sm">
               {locale === 'el' 
-                ? 'Επίλεξε το κύριο συναίσθημά σου τώρα' 
-                : 'Select your main feeling right now'
+                ? 'Επίλεξε το συναίσθημα που σε περιγράφει καλύτερα' 
+                : 'Choose the emotion that best describes you'
               }
             </p>
             
             <EmotionPicker
-              emotions={EMOTIONS.slice(0, 12)} // Show first 12 for simplicity
-              selectedEmotion={primaryEmotion || undefined}
+              emotions={EMOTIONS}
+              selectedEmotion={primaryEmotion}
               onSelect={setPrimaryEmotion}
               locale={locale}
+              variant={variant === 'quick' ? 'wheel' : 'grid'}
             />
-            
-            {/* More emotions button */}
-            {variant !== 'quick' && (
-              <button className="w-full text-sm text-gray-500 hover:text-gray-700">
-                {locale === 'el' ? 'Δείξε περισσότερα...' : 'Show more...'}
-              </button>
-            )}
           </motion.div>
         )}
         
@@ -514,26 +516,24 @@ export function EmotionCheckIn({
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
-            {/* Selected emotion display */}
             <div className="text-center">
-              <span className="text-5xl mb-2 block">{selectedEmotionData?.emoji}</span>
-              <p className="text-lg font-medium" style={{ color: selectedEmotionData?.color }}>
+              <span className="text-5xl">{selectedEmotionData?.emoji}</span>
+              <h2 className="text-xl font-semibold text-gray-800 mt-2">
                 {locale === 'el' ? selectedEmotionData?.labelEl : selectedEmotionData?.labelEn}
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">
+                {locale === 'el' 
+                  ? 'Πόσο έντονο είναι αυτό το συναίσθημα;' 
+                  : 'How intense is this feeling?'
+                }
               </p>
             </div>
-            
-            <p className="text-gray-600 text-center">
-              {locale === 'el' 
-                ? 'Πόσο έντονο είναι αυτό το συναίσθημα;' 
-                : 'How intense is this feeling?'
-              }
-            </p>
             
             <IntensitySlider
               value={intensity}
               onChange={setIntensity}
-              color={selectedEmotionData?.color || '#4ADE80'}
               locale={locale}
+              color={selectedEmotionData?.color}
             />
           </motion.div>
         )}
@@ -550,7 +550,7 @@ export function EmotionCheckIn({
             <p className="text-gray-600 text-center">
               {locale === 'el' 
                 ? 'Πού νιώθεις αυτό το συναίσθημα στο σώμα σου;' 
-                : 'Where do you feel this in your body?'
+                : 'Where do you feel this emotion in your body?'
               }
             </p>
             
