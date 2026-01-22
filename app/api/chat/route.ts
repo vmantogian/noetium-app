@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
-import { searchEducationalContent, buildRAGContext } from '@/lib/rag';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -34,6 +33,57 @@ const subjectPrompts: Record<string, string> = {
   general: 'Είσαι γενικός δάσκαλος. Βοήθα με οποιοδήποτε θέμα.',
 };
 
+// RAG search function
+async function searchEducationalContent(
+  supabase: any,
+  query: string,
+  options: { matchThreshold?: number; matchCount?: number; filterSubject?: string }
+) {
+  try {
+    // Generate embedding for the query
+    const embeddingResponse = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: query,
+    });
+    
+    const embedding = embeddingResponse.data[0].embedding;
+
+    // Search educational content
+    const { data, error } = await supabase.rpc('search_educational_content', {
+      query_embedding: embedding,
+      match_threshold: options.matchThreshold || 0.4,
+      match_count: options.matchCount || 3,
+      filter_subject: options.filterSubject || null
+    });
+
+    if (error) {
+      console.error('RAG search error:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('RAG search error:', error);
+    return [];
+  }
+}
+
+// Build RAG context from search results
+function buildRAGContext(results: any[]): string {
+  if (results.length === 0) return '';
+
+  const context = results.map((r, i) => 
+    `[Πηγή ${i + 1}: ${r.source_title || r.source}]\n${r.content}`
+  ).join('\n\n');
+
+  return `
+ΣΧΕΤΙΚΟ ΥΛΙΚΟ ΑΠΟ ΣΧΟΛΙΚΑ ΒΙΒΛΙΑ:
+${context}
+
+Χρησιμοποίησε αυτό το υλικό για να βοηθήσεις τον μαθητή, αλλά μην το αντιγράφεις αυτολεξεί.
+`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -64,7 +114,7 @@ export async function POST(request: NextRequest) {
     let sources: any[] = [];
     
     try {
-      const searchResults = await searchEducationalContent(message, {
+      const searchResults = await searchEducationalContent(supabase, message, {
         matchThreshold: 0.4,
         matchCount: 3,
         filterSubject: dbSubject,
@@ -72,8 +122,8 @@ export async function POST(request: NextRequest) {
 
       if (searchResults.length > 0) {
         ragContext = buildRAGContext(searchResults);
-        sources = searchResults.map(r => ({
-          title: r.sourceTitle,
+        sources = searchResults.map((r: any) => ({
+          title: r.source_title,
           source: r.source,
           similarity: r.similarity
         }));
@@ -81,10 +131,6 @@ export async function POST(request: NextRequest) {
     } catch (ragError) {
       console.error('RAG search error:', ragError);
     }
-
-    // Check if user is asking for an image
-    const imageKeywords = ['δείξε μου', 'φτιάξε εικόνα', 'δημιούργησε εικόνα', 'σχεδίασε', 'εικόνα', 'διάγραμμα', 'σχήμα', 'show me', 'draw', 'image', 'diagram', 'visualize'];
-    const wantsImage = imageKeywords.some(keyword => message.toLowerCase().includes(keyword));
 
     const systemPrompt = `Είσαι ο Noetia, ένας φιλικός AI δάσκαλος για Έλληνες μαθητές.
 
@@ -184,7 +230,8 @@ ${ragContext}
               quality: 'standard',
             });
 
-            const imageUrl = imageResponse.data[0]?.url;
+            // Safely access the image URL
+            const imageUrl = imageResponse.data?.[0]?.url;
             if (imageUrl) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'image', imageUrl })}\n\n`));
             }
