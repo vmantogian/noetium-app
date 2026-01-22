@@ -1,6 +1,19 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+interface CookieToSet {
+  name: string;
+  value: string;
+  options?: {
+    path?: string;
+    maxAge?: number;
+    domain?: string;
+    secure?: boolean;
+    httpOnly?: boolean;
+    sameSite?: 'strict' | 'lax' | 'none';
+  };
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -14,8 +27,8 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+        setAll(cookiesToSet: CookieToSet[]) {
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({
@@ -46,7 +59,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Helper function to redirect based on user type
-  const redirectToDashboard = async (profile: any) => {
+  const redirectToDashboard = (profile: { user_type?: string } | null) => {
     if (profile?.user_type === 'teacher') {
       return NextResponse.redirect(new URL('/teacher', request.url));
     } else if (profile?.user_type === 'parent') {
@@ -118,12 +131,6 @@ export async function middleware(request: NextRequest) {
       if (profile.user_type !== 'parent') {
         return redirectToDashboard(profile);
       }
-    }
-
-    // Check student access (optional - students shouldn't access teacher/parent areas)
-    if (pathname.startsWith('/student')) {
-      // Allow all user types to access student area for now
-      // Or restrict: if (profile.user_type !== 'student') { return redirectToDashboard(profile); }
     }
   }
 
