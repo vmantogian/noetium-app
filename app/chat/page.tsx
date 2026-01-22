@@ -3,7 +3,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import Image from 'next/image';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface Label {
+  text: string;
+  x: number;
+  y: number;
+}
 
 interface Message {
   id: string;
@@ -12,6 +21,7 @@ interface Message {
   timestamp: Date;
   sources?: { title: string; source: string; similarity: number }[];
   imageUrl?: string;
+  imageLabels?: Label[];
   userImage?: string;
   isStreaming?: boolean;
 }
@@ -22,6 +32,59 @@ interface Subject {
   icon: string;
   color: string;
 }
+
+// ============================================================================
+// LabeledImage Component - Overlays Greek text on images
+// ============================================================================
+
+function LabeledImage({ imageUrl, labels }: { imageUrl: string; labels: Label[] }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  return (
+    <div className="relative inline-block max-w-full">
+      {/* Base Image */}
+      <img 
+        src={imageUrl} 
+        alt="Educational illustration" 
+        className="max-w-full rounded-lg shadow-md"
+        onLoad={() => setImageLoaded(true)}
+      />
+      
+      {/* Greek Labels Overlay */}
+      {imageLoaded && labels && labels.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none">
+          {labels.map((label, index) => (
+            <div
+              key={index}
+              className="absolute transform -translate-x-1/2 -translate-y-1/2"
+              style={{
+                left: `${label.x}%`,
+                top: `${label.y}%`,
+              }}
+            >
+              {/* Label with background for readability */}
+              <span 
+                className="inline-block px-2 py-1 text-sm md:text-base font-bold rounded-lg shadow-lg"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  color: '#1a1a1a',
+                  border: '2px solid #7c3aed',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {label.text}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// Constants
+// ============================================================================
 
 const subjects: Subject[] = [
   { id: 'math', name: 'Μαθηματικά', icon: '🔢', color: 'bg-blue-500' },
@@ -36,11 +99,15 @@ const subjects: Subject[] = [
 
 const quickPrompts = [
   'Εξήγησέ μου σαν να είμαι 10 χρονών',
-  'Δείξε μου ένα διάγραμμα',
+  'Δείξε μου μια εικόνα',
   'Γιατί είναι σημαντικό αυτό;',
   'Μπορείς να το απλοποιήσεις;',
   'Δώσε μου ένα παράδειγμα',
 ];
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export default function ChatTutorPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -63,7 +130,7 @@ export default function ChatTutorPage() {
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: `Γεια σου! 👋 Είμαι ο Noetia, ο AI δάσκαλός σου.\n\nΧρησιμοποιώ τη Σωκρατική μέθοδο - αυτό σημαίνει ότι θα σε καθοδηγήσω να βρεις τις απαντήσεις μόνος σου με ερωτήσεις και hints!\n\nΈχω πρόσβαση στα ελληνικά σχολικά βιβλία και μπορώ να δημιουργήσω εικόνες για να σε βοηθήσω. Τι θα ήθελες να μάθεις σήμερα; 📚`,
+        content: `Γεια σου! 👋 Είμαι ο Noetia, ο AI δάσκαλός σου.\n\nΧρησιμοποιώ τη Σωκρατική μέθοδο - αυτό σημαίνει ότι θα σε καθοδηγήσω να βρεις τις απαντήσεις μόνος σου με ερωτήσεις και hints!\n\nΈχω πρόσβαση στα ελληνικά σχολικά βιβλία και μπορώ να δημιουργήσω εικόνες με ελληνικές ετικέτες. Τι θα ήθελες να μάθεις σήμερα; 📚`,
         timestamp: new Date()
       }]);
     }
@@ -142,6 +209,7 @@ export default function ChatTutorPage() {
         const decoder = new TextDecoder();
         let sources: any[] = [];
         let generatedImageUrl: string | null = null;
+        let imageLabels: Label[] = [];
 
         if (reader) {
           while (true) {
@@ -166,7 +234,13 @@ export default function ChatTutorPage() {
                     ));
                   } else if (data.type === 'generating_image') {
                     setGeneratingImage(true);
+                  } else if (data.type === 'image_with_labels') {
+                    // New type: image with Greek labels
+                    generatedImageUrl = data.imageUrl;
+                    imageLabels = data.labels || [];
+                    setGeneratingImage(false);
                   } else if (data.type === 'image') {
+                    // Fallback for old format
                     generatedImageUrl = data.imageUrl;
                     setGeneratingImage(false);
                   } else if (data.type === 'image_error') {
@@ -179,21 +253,21 @@ export default function ChatTutorPage() {
                             isStreaming: false, 
                             sources: sources.length > 0 ? sources : undefined,
                             imageUrl: generatedImageUrl || undefined,
-                            // Remove the [ΘΕΛΩ_ΕΙΚΟΝΑ: ...] tag from displayed content
-                            content: m.content.replace(/\[ΘΕΛΩ_ΕΙΚΟΝΑ:[^\]]+\]/g, '').trim()
+                            imageLabels: imageLabels.length > 0 ? imageLabels : undefined,
+                            // Remove the image tag from displayed content
+                            content: m.content.replace(/\[ΕΙΚΟΝΑ\][\s\S]*?\[\/ΕΙΚΟΝΑ\]/g, '').trim()
                           }
                         : m
                     ));
                   }
                 } catch (e) {
-                  // Ignore parse errors for incomplete chunks
+                  // Ignore parse errors
                 }
               }
             }
           }
         }
       } else {
-        // Handle non-streaming response (fallback)
         const data = await response.json();
         setMessages(prev => prev.map(m => 
           m.id === assistantMessageId 
@@ -241,8 +315,8 @@ export default function ChatTutorPage() {
                 🤖
               </div>
               <div>
-                <h1 className="font-bold text-gray-800">Noetia</h1>
-                <p className="text-xs text-gray-500">AI Δάσκαλος • Σωκρατική Μέθοδος</p>
+                <h1 className="font-bold text-gray-900">Noetia</h1>
+                <p className="text-xs text-gray-600">AI Δάσκαλος • Σωκρατική Μέθοδος</p>
               </div>
             </div>
 
@@ -274,7 +348,7 @@ export default function ChatTutorPage() {
                       }`}
                     >
                       <span>{subject.icon}</span>
-                      <span className="text-sm">{subject.name}</span>
+                      <span className="text-sm text-gray-900">{subject.name}</span>
                     </button>
                   ))}
                 </motion.div>
@@ -304,11 +378,11 @@ export default function ChatTutorPage() {
                 {message.role === 'assistant' && (
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">🤖</span>
-                    <span className="text-xs text-gray-500">Noetia</span>
+                    <span className="text-xs text-gray-700 font-semibold">Noetia</span>
                     {message.sources && message.sources.length > 0 && (
                       <button
                         onClick={() => setShowSources(showSources === message.id ? null : message.id)}
-                        className="text-xs text-purple-500 hover:text-purple-700 ml-2"
+                        className="text-xs text-purple-600 hover:text-purple-800 ml-2 font-semibold"
                       >
                         📚 {message.sources.length} πηγές
                       </button>
@@ -330,25 +404,41 @@ export default function ChatTutorPage() {
                   </div>
                 )}
 
-                <p className="whitespace-pre-wrap">{message.content}{message.isStreaming && message.content === '' && '...'}</p>
+                {/* Message content - ALMOST BLACK */}
+                <p className={`whitespace-pre-wrap ${
+                  message.role === 'user' ? 'text-white' : 'text-gray-900'
+                }`}>
+                  {message.content}
+                  {message.isStreaming && message.content === '' && '...'}
+                </p>
 
-                {/* Generated image */}
+                {/* Generated image WITH GREEK LABELS */}
                 {message.imageUrl && (
-                  <div className="mt-3">
-                    <img 
-                      src={message.imageUrl} 
-                      alt="Generated illustration" 
-                      className="max-w-full rounded-lg shadow-md"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">🎨 Εικόνα δημιουργήθηκε με AI</p>
+                  <div className="mt-4">
+                    {message.imageLabels && message.imageLabels.length > 0 ? (
+                      <LabeledImage 
+                        imageUrl={message.imageUrl} 
+                        labels={message.imageLabels} 
+                      />
+                    ) : (
+                      <img 
+                        src={message.imageUrl} 
+                        alt="Generated illustration" 
+                        className="max-w-full rounded-lg shadow-md"
+                      />
+                    )}
+                    <p className="text-xs text-gray-600 mt-2">
+                      🎨 Εικόνα δημιουργήθηκε με AI
+                      {message.imageLabels && message.imageLabels.length > 0 && ' • Ελληνικές ετικέτες'}
+                    </p>
                   </div>
                 )}
 
                 {/* Generating image indicator */}
                 {message.isStreaming && generatingImage && (
-                  <div className="mt-3 flex items-center gap-2 text-purple-500">
+                  <div className="mt-3 flex items-center gap-2 text-purple-600">
                     <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full"></div>
-                    <span className="text-sm">Δημιουργώ εικόνα...</span>
+                    <span className="text-sm font-semibold">Δημιουργώ εικόνα με ελληνικές ετικέτες...</span>
                   </div>
                 )}
                 
@@ -356,11 +446,11 @@ export default function ChatTutorPage() {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="mt-3 pt-3 border-t text-xs text-gray-500"
+                    className="mt-3 pt-3 border-t"
                   >
-                    <p className="font-medium mb-1">Πηγές από σχολικά βιβλία:</p>
+                    <p className="font-semibold mb-1 text-gray-900 text-xs">Πηγές από σχολικά βιβλία:</p>
                     {message.sources.map((source, i) => (
-                      <p key={i} className="truncate">
+                      <p key={i} className="truncate text-gray-700 text-xs">
                         {i + 1}. {source.title || source.source}
                       </p>
                     ))}
@@ -384,8 +474,8 @@ export default function ChatTutorPage() {
                 className="h-16 w-16 object-cover rounded-lg"
               />
               <div className="flex-1">
-                <p className="text-sm text-gray-600">Εικόνα έτοιμη για αποστολή</p>
-                <p className="text-xs text-gray-400">Γράψε μια ερώτηση ή πάτα αποστολή</p>
+                <p className="text-sm text-gray-900 font-medium">Εικόνα έτοιμη για αποστολή</p>
+                <p className="text-xs text-gray-600">Γράψε μια ερώτηση ή πάτα αποστολή</p>
               </div>
               <button
                 onClick={removePendingImage}
@@ -406,14 +496,14 @@ export default function ChatTutorPage() {
               <button
                 key={prompt}
                 onClick={() => handleQuickPrompt(prompt)}
-                className="flex-shrink-0 px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-gray-200"
+                className="flex-shrink-0 px-3 py-1 bg-gray-100 text-gray-900 rounded-full text-sm hover:bg-gray-200 font-medium"
               >
                 {prompt}
               </button>
             ))}
             <button
               onClick={clearChat}
-              className="flex-shrink-0 px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm hover:bg-red-200"
+              className="flex-shrink-0 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm hover:bg-red-200 font-medium"
             >
               🗑️ Νέα συζήτηση
             </button>
@@ -425,7 +515,6 @@ export default function ChatTutorPage() {
       <div className="bg-white border-t p-4 pb-20 md:pb-4">
         <div className="container mx-auto max-w-4xl">
           <div className="flex gap-2">
-            {/* Image upload button */}
             <input
               type="file"
               ref={fileInputRef}
@@ -447,7 +536,7 @@ export default function ChatTutorPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
               placeholder={pendingImage ? "Ρώτα για την εικόνα..." : "Ρώτα με οτιδήποτε..."}
-              className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 placeholder-gray-500"
               disabled={loading}
             />
             <button
@@ -468,21 +557,21 @@ export default function ChatTutorPage() {
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex justify-around py-2">
-          <Link href="/student" className="flex flex-col items-center px-3 py-1 text-gray-500">
+          <Link href="/student" className="flex flex-col items-center px-3 py-1 text-gray-700">
             <span className="text-xl">🏠</span>
-            <span className="text-xs mt-1">Αρχική</span>
+            <span className="text-xs mt-1 font-medium">Αρχική</span>
           </Link>
-          <Link href="/enrichment" className="flex flex-col items-center px-3 py-1 text-gray-500">
+          <Link href="/enrichment" className="flex flex-col items-center px-3 py-1 text-gray-700">
             <span className="text-xl">🌟</span>
-            <span className="text-xs mt-1">Μάθηση</span>
+            <span className="text-xs mt-1 font-medium">Μάθηση</span>
           </Link>
           <Link href="/chat" className="flex flex-col items-center px-3 py-1 text-purple-600">
             <span className="text-xl">🤖</span>
-            <span className="text-xs mt-1">AI</span>
+            <span className="text-xs mt-1 font-medium">AI</span>
           </Link>
-          <Link href="/profile" className="flex flex-col items-center px-3 py-1 text-gray-500">
+          <Link href="/profile" className="flex flex-col items-center px-3 py-1 text-gray-700">
             <span className="text-xl">👤</span>
-            <span className="text-xs mt-1">Προφίλ</span>
+            <span className="text-xs mt-1 font-medium">Προφίλ</span>
           </Link>
         </div>
       </nav>

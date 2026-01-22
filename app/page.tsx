@@ -1,241 +1,197 @@
-import Link from 'next/link'
-import Logo from '@/components/Logo'
+'use client';
 
-export default function Home() {
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+
+export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#191308]">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-[#191308]/90 backdrop-blur-md z-50 border-b border-[#454551]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Logo size={28} className="sm:w-9 sm:h-9" />
-              <span className="text-lg sm:text-xl font-heading font-semibold text-white">Noetium</span>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <Link 
-                href="/login" 
-                className="text-sm sm:text-base text-[#D8D9DC] hover:text-[#87F1FF] transition-colors font-body"
-              >
-                Σύνδεση
-              </Link>
-              <Link 
-                href="/signup" 
-                className="bg-gradient-to-r from-[#4EA6DC] to-[#113285] hover:from-[#87F1FF] hover:to-[#4EA6DC] text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg transition-all font-body font-medium text-sm sm:text-base"
-              >
-                Εγγραφή
-              </Link>
-            </div>
+    <div className="min-h-screen bg-gradient-to-b from-purple-600 via-indigo-600 to-blue-700">
+      {/* Header */}
+      <header className="container mx-auto px-4 py-6">
+        <nav className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-3xl">🎓</span>
+            <span className="text-2xl font-bold text-white">Noetium</span>
           </div>
-        </div>
-      </nav>
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/login" 
+              className="text-white/90 hover:text-white font-medium transition-colors"
+            >
+              Σύνδεση
+            </Link>
+            <Link 
+              href="/signup" 
+              className="bg-white text-purple-600 px-5 py-2 rounded-xl font-semibold hover:bg-purple-50 transition-colors"
+            >
+              Εγγραφή
+            </Link>
+          </div>
+        </nav>
+      </header>
 
       {/* Hero Section */}
-      <section className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex justify-center mb-6 sm:mb-8">
-            <Logo size={70} className="sm:w-[100px] sm:h-[100px]" />
-          </div>
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-heading font-semibold text-white mb-4 sm:mb-6 leading-tight">
-            Ο Έξυπνος Βοηθός για τα{' '}
-            <span className="gradient-text">Μαθήματά σου</span>
-          </h1>
-          <p className="text-base sm:text-xl text-[#D8D9DC] mb-6 sm:mb-8 max-w-2xl mx-auto font-body px-2">
-            Μάθε Φυσική, Μαθηματικά, Χημεία και πολλά άλλα με τη βοήθεια τεχνητής νοημοσύνης. 
-            Βασισμένο στα ελληνικά σχολικά βιβλία.
-          </p>
-          
-          {/* Role Selection - Like Khan Academy */}
-          <div className="max-w-md mx-auto space-y-3 mb-8">
-            <p className="text-[#D8D9DC] font-body mb-4">Ξεκίνα σήμερα!</p>
+      <main className="container mx-auto px-4 py-12 md:py-20">
+        <div className="text-center max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+              Ο AI Δάσκαλος που
+              <span className="text-yellow-300"> Σε Καταλαβαίνει</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-white/80 mb-8 max-w-2xl mx-auto">
+              Μάθε με τη Σωκρατική μέθοδο. Από το Δημοτικό μέχρι το Λύκειο, 
+              με πρόσβαση σε όλα τα ελληνικά σχολικά βιβλία.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
+          >
             <Link 
-              href="/signup?role=student"
-              className="flex items-center justify-between w-full bg-[#1E1E24] hover:bg-[#2a2a32] border border-[#454551] hover:border-[#4EA6DC] text-white px-6 py-4 rounded-xl transition-all font-body group"
+              href="/signup" 
+              className="bg-yellow-400 text-gray-900 px-8 py-4 rounded-xl font-bold text-lg hover:bg-yellow-300 transition-colors shadow-lg"
             >
-              <span className="flex items-center gap-3">
-                <span className="text-2xl">🎓</span>
-                <span>Είμαι Μαθητής</span>
-              </span>
-              <svg className="w-5 h-5 text-[#454551] group-hover:text-[#4EA6DC] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              Ξεκίνα Δωρεάν →
             </Link>
             <Link 
-              href="/signup?role=teacher"
-              className="flex items-center justify-between w-full bg-[#1E1E24] hover:bg-[#2a2a32] border border-[#454551] hover:border-[#E32D91] text-white px-6 py-4 rounded-xl transition-all font-body group"
+              href="#features" 
+              className="bg-white/10 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-colors border border-white/30"
             >
-              <span className="flex items-center gap-3">
-                <span className="text-2xl">👨‍🏫</span>
-                <span>Είμαι Καθηγητής</span>
-              </span>
-              <svg className="w-5 h-5 text-[#454551] group-hover:text-[#E32D91] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              Μάθε Περισσότερα
             </Link>
-            <Link 
-              href="/signup?role=parent"
-              className="flex items-center justify-between w-full bg-[#1E1E24] hover:bg-[#2a2a32] border border-[#454551] hover:border-[#C830CC] text-white px-6 py-4 rounded-xl transition-all font-body group"
-            >
-              <span className="flex items-center gap-3">
-                <span className="text-2xl">👨‍👩‍👧</span>
-                <span>Είμαι Γονέας</span>
-              </span>
-              <svg className="w-5 h-5 text-[#454551] group-hover:text-[#C830CC] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-          
-          <p className="text-[#454551] text-sm font-body">
-            Έχεις ήδη λογαριασμό;{' '}
-            <Link href="/login" className="text-[#87F1FF] hover:underline">Σύνδεση</Link>
-          </p>
+          </motion.div>
+
+          {/* Demo Image/Preview */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/20 max-w-3xl mx-auto"
+          >
+            <div className="bg-white rounded-xl p-6 shadow-xl">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-xl">🤖</div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm text-gray-500 mb-1">Noetia • AI Δάσκαλος</p>
+                  <p className="text-gray-900">
+                    Γεια σου! 👋 Βλέπω ότι θέλεις να μάθεις για τη φωτοσύνθεση. 
+                    Ας ξεκινήσουμε με μια ερώτηση: <strong>Τι νομίζεις ότι χρειάζεται ένα φυτό για να ζήσει;</strong>
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">💡 Hint διαθέσιμο</span>
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">📚 Από σχολικά βιβλία</span>
+              </div>
+            </div>
+          </motion.div>
         </div>
-      </section>
+      </main>
 
       {/* Features Section */}
-      <section id="features" className="py-12 sm:py-20 px-4 bg-[#1E1E24]">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-heading font-semibold text-center text-white mb-8 sm:mb-12">
-            Γιατί να επιλέξεις το Noetium;
+      <section id="features" className="bg-white py-20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-12">
+            Γιατί Noetium;
           </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-            <FeatureCard 
-              icon="📚"
-              title="Βασισμένο στα Σχολικά Βιβλία"
-              description="Οι απαντήσεις προέρχονται από τα επίσημα ελληνικά σχολικά βιβλία Γυμνασίου και Λυκείου."
-              accentColor="#4EA6DC"
-            />
-            <FeatureCard 
-              icon="🤖"
-              title="Τεχνητή Νοημοσύνη"
-              description="Χρησιμοποιούμε τα πιο προηγμένα μοντέλα AI για να σου εξηγήσουμε τα πάντα με απλό τρόπο."
-              accentColor="#E32D91"
-            />
-            <FeatureCard 
-              icon="🎯"
-              title="Προσαρμοσμένη Βοήθεια"
-              description="Κατανοεί τις ερωτήσεις σου και σου δίνει απαντήσεις στο επίπεδό σου."
-              accentColor="#C830CC"
-            />
-            <FeatureCard 
-              icon="📝"
-              title="Ασκήσεις & Λύσεις"
-              description="Πρόσβαση σε ασκήσεις από σχολικά βιβλία και πανελλήνιες εξετάσεις."
-              accentColor="#87F1FF"
-            />
-            <FeatureCard 
-              icon="🇬🇷"
-              title="100% Ελληνικά"
-              description="Πλήρως στα ελληνικά, σχεδιασμένο για το ελληνικό εκπαιδευτικό σύστημα."
-              accentColor="#113285"
-            />
-            <FeatureCard 
-              icon="⚡"
-              title="Άμεσες Απαντήσεις"
-              description="Λαμβάνεις απαντήσεις σε δευτερόλεπτα, 24 ώρες το 24ωρο."
-              accentColor="#4EA6DC"
-            />
+          
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Feature 1 */}
+            <div className="text-center p-6">
+              <div className="text-5xl mb-4">🏛️</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Σωκρατική Μέθοδος</h3>
+              <p className="text-gray-600">
+                Δεν δίνουμε απαντήσεις - σε καθοδηγούμε να τις ανακαλύψεις μόνος σου
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="text-center p-6">
+              <div className="text-5xl mb-4">📚</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Ελληνικά Βιβλία</h3>
+              <p className="text-gray-600">
+                Πρόσβαση σε όλα τα σχολικά βιβλία από Α' Δημοτικού έως Γ' Λυκείου
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="text-center p-6">
+              <div className="text-5xl mb-4">🎨</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Εικόνες & Διαγράμματα</h3>
+              <p className="text-gray-600">
+                Δημιουργία εκπαιδευτικών εικόνων με ελληνικές ετικέτες
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* For Teachers Section */}
-      <section className="py-12 sm:py-20 px-4 bg-[#191308]">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8 sm:mb-12">
-            <span className="text-[#E32D91] font-body text-sm uppercase tracking-wider">Για Καθηγητές</span>
-            <h2 className="text-2xl sm:text-3xl font-heading font-semibold text-white mt-2">
-              Εργαλεία AI για την Τάξη σου
-            </h2>
-            <p className="text-[#D8D9DC] font-body mt-3 max-w-2xl mx-auto">
-              Δωρεάν εργαλεία τεχνητής νοημοσύνης σχεδιασμένα να σου εξοικονομήσουν χρόνο 
-              και να βελτιώσουν τη διδασκαλία.
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ToolCard 
-              icon="📋"
-              title="Σχέδιο Μαθήματος"
-              description="Δημιούργησε δομημένα σχέδια μαθήματος προσαρμοσμένα στο πρόγραμμα σου."
-              color="#4EA6DC"
-            />
-            <ToolCard 
-              icon="❓"
-              title="Γεννήτρια Ερωτήσεων"
-              description="Δημιούργησε ερωτήσεις πολλαπλής επιλογής και ανοιχτού τύπου."
-              color="#E32D91"
-            />
-            <ToolCard 
-              icon="📊"
-              title="Δημιουργία Τεστ"
-              description="Φτιάξε τεστ αξιολόγησης με αυτόματη βαθμολόγηση."
-              color="#C830CC"
-            />
-            <ToolCard 
-              icon="📝"
-              title="Απλοποίηση Κειμένου"
-              description="Προσάρμοσε τη δυσκολία ενός κειμένου στο επίπεδο των μαθητών."
-              color="#87F1FF"
-            />
-            <ToolCard 
-              icon="💬"
-              title="Θέματα Συζήτησης"
-              description="Δημιούργησε ερεθίσματα για ουσιαστικές συζητήσεις στην τάξη."
-              color="#113285"
-            />
-            <ToolCard 
-              icon="🎯"
-              title="Μαθησιακοί Στόχοι"
-              description="Ανάπτυξε σαφείς, μετρήσιμους στόχους για κάθε μάθημα."
-              color="#4EA6DC"
-            />
-          </div>
-          <div className="text-center mt-8">
-            <Link 
-              href="/signup?role=teacher"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#E32D91] to-[#C830CC] hover:from-[#C830CC] hover:to-[#E32D91] text-white px-6 py-3 rounded-xl font-body font-medium transition-all"
-            >
-              Ξεκίνα ως Καθηγητής
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Subjects Section */}
-      <section className="py-12 sm:py-20 px-4 bg-[#1E1E24]">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-heading font-semibold text-center text-white mb-8 sm:mb-12">
-            Μαθήματα που Υποστηρίζουμε
+      {/* For Who Section */}
+      <section className="bg-gray-50 py-20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-12">
+            Για Ποιον Είναι;
           </h2>
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
-            <SubjectBadge emoji="🔬" name="Φυσική" />
-            <SubjectBadge emoji="📐" name="Μαθηματικά" />
-            <SubjectBadge emoji="⚗️" name="Χημεία" />
-            <SubjectBadge emoji="🧬" name="Βιολογία" />
-            <SubjectBadge emoji="📜" name="Ιστορία" />
-            <SubjectBadge emoji="📖" name="Νεοελληνική" />
-            <SubjectBadge emoji="🏛️" name="Αρχαία" />
-            <SubjectBadge emoji="🌍" name="Γεωγραφία" />
+          
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Students */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div className="text-5xl mb-4">👨‍🎓</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Μαθητές</h3>
+              <ul className="text-gray-600 space-y-2">
+                <li>✓ AI δάσκαλος 24/7</li>
+                <li>✓ Βοήθεια στις εργασίες</li>
+                <li>✓ Διασκεδαστική μάθηση</li>
+                <li>✓ Badges & επιτεύγματα</li>
+              </ul>
+            </div>
+
+            {/* Teachers */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div className="text-5xl mb-4">👨‍🏫</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Εκπαιδευτικοί</h3>
+              <ul className="text-gray-600 space-y-2">
+                <li>✓ Γεννήτρια ασκήσεων</li>
+                <li>✓ Σχέδια μαθήματος</li>
+                <li>✓ Βαθμολόγηση με φωτογραφία</li>
+                <li>✓ Παρακολούθηση μαθητών</li>
+              </ul>
+            </div>
+
+            {/* Parents */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div className="text-5xl mb-4">👨‍👩‍👧</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Γονείς</h3>
+              <ul className="text-gray-600 space-y-2">
+                <li>✓ Πρόοδος παιδιών</li>
+                <li>✓ Ειδοποιήσεις</li>
+                <li>✓ Εβδομαδιαίες αναφορές</li>
+                <li>✓ Σύντομα διαθέσιμο</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 sm:py-20 px-4 bg-gradient-to-r from-[#113285] via-[#4EA6DC] to-[#C830CC]">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-heading font-semibold text-white mb-4">
-            Έτοιμος να ξεκινήσεις;
+      <section className="bg-purple-600 py-16">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Έτοιμος να Ξεκινήσεις;
           </h2>
-          <p className="text-white/90 mb-6 sm:mb-8 text-base sm:text-lg font-body">
-            Κάνε εγγραφή δωρεάν και ξεκίνα να μαθαίνεις με τον έξυπνο βοηθό σου.
+          <p className="text-xl text-white/80 mb-8">
+            Δωρεάν εγγραφή. Χωρίς πιστωτική κάρτα.
           </p>
           <Link 
             href="/signup" 
-            className="inline-block bg-white hover:bg-[#E5D0E3] text-[#113285] px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-body font-medium transition-all hover:-translate-y-1 hover:shadow-xl"
+            className="inline-block bg-yellow-400 text-gray-900 px-10 py-4 rounded-xl font-bold text-lg hover:bg-yellow-300 transition-colors shadow-lg"
           >
             Δημιούργησε Λογαριασμό →
           </Link>
@@ -243,80 +199,24 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-6 sm:py-8 px-4 border-t border-[#454551] bg-[#191308]">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-3">
-            <Logo size={24} className="sm:w-7 sm:h-7" />
-            <span className="font-heading font-semibold text-[#D8D9DC]">Noetium</span>
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🎓</span>
+              <span className="text-xl font-bold">Noetium</span>
+            </div>
+            <div className="flex gap-6 text-gray-400">
+              <Link href="/terms" className="hover:text-white">Όροι Χρήσης</Link>
+              <Link href="/privacy" className="hover:text-white">Απόρρητο</Link>
+              <Link href="/contact" className="hover:text-white">Επικοινωνία</Link>
+            </div>
+            <p className="text-gray-400 text-sm">
+              © 2025 Noetium. Made in Greece 🇬🇷
+            </p>
           </div>
-          <p className="text-[#454551] text-xs sm:text-sm font-body text-center sm:text-right">
-            © 2026 Noetium. Με ❤️ για την ελληνική εκπαίδευση.
-          </p>
         </div>
       </footer>
-    </main>
-  )
-}
-
-function FeatureCard({ 
-  icon, 
-  title, 
-  description,
-  accentColor 
-}: { 
-  icon: string
-  title: string
-  description: string
-  accentColor: string
-}) {
-  return (
-    <div 
-      className="bg-[#191308] p-4 sm:p-6 rounded-2xl border border-[#454551] hover:border-[#4EA6DC] transition-all hover:-translate-y-1 hover:shadow-lg group"
-    >
-      <div 
-        className="text-2xl sm:text-4xl mb-3 sm:mb-4 w-10 sm:w-14 h-10 sm:h-14 flex items-center justify-center rounded-xl"
-        style={{ backgroundColor: `${accentColor}20` }}
-      >
-        {icon}
-      </div>
-      <h3 className="text-lg sm:text-xl font-heading font-semibold text-white mb-2">{title}</h3>
-      <p className="text-sm sm:text-base text-[#D8D9DC] font-body">{description}</p>
     </div>
-  )
-}
-
-function ToolCard({ 
-  icon, 
-  title, 
-  description,
-  color 
-}: { 
-  icon: string
-  title: string
-  description: string
-  color: string
-}) {
-  return (
-    <div className="bg-[#1E1E24] p-4 rounded-xl border border-[#454551] hover:border-[#4EA6DC] transition-all flex items-start gap-3 group cursor-pointer">
-      <div 
-        className="w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0"
-        style={{ backgroundColor: `${color}20` }}
-      >
-        {icon}
-      </div>
-      <div>
-        <h3 className="font-heading font-semibold text-white text-sm">{title}</h3>
-        <p className="text-xs text-[#D8D9DC] font-body mt-1">{description}</p>
-      </div>
-    </div>
-  )
-}
-
-function SubjectBadge({ emoji, name }: { emoji: string; name: string }) {
-  return (
-    <div className="flex items-center gap-2 bg-[#191308] border border-[#454551] hover:border-[#87F1FF] px-3 sm:px-5 py-2 sm:py-3 rounded-full transition-all cursor-default hover:-translate-y-1">
-      <span className="text-base sm:text-xl">{emoji}</span>
-      <span className="text-sm sm:text-base text-[#D8D9DC] font-body">{name}</span>
-    </div>
-  )
+  );
 }

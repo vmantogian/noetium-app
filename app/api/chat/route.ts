@@ -40,7 +40,6 @@ async function searchEducationalContent(
   options: { matchThreshold?: number; matchCount?: number; filterSubject?: string }
 ) {
   try {
-    // Generate embedding for the query
     const embeddingResponse = await openai.embeddings.create({
       model: 'text-embedding-3-small',
       input: query,
@@ -48,7 +47,6 @@ async function searchEducationalContent(
     
     const embedding = embeddingResponse.data[0].embedding;
 
-    // Search educational content
     const { data, error } = await supabase.rpc('search_educational_content', {
       query_embedding: embedding,
       match_threshold: options.matchThreshold || 0.4,
@@ -68,7 +66,6 @@ async function searchEducationalContent(
   }
 }
 
-// Build RAG context from search results
 function buildRAGContext(results: any[]): string {
   if (results.length === 0) return '';
 
@@ -132,7 +129,7 @@ export async function POST(request: NextRequest) {
       console.error('RAG search error:', ragError);
     }
 
-    const systemPrompt = `Είσαι ο Noetia, ένας φιλικός AI δάσκαλος για Έλληνες μαθητές.
+    const systemPrompt = `Είσαι ο Noetia, ένας φιλικός AI δάσκαλος για Έλληνες μαθητές Δημοτικού, Γυμνασίου και Λυκείου.
 
 ${subjectContext}
 
@@ -145,14 +142,28 @@ ${subjectContext}
 
 ΣΤΥΛ:
 - Φιλικός και ενθαρρυντικός τόνος
-- Χρησιμοποίησε emoji με μέτρο
+- Χρησιμοποίησε emoji με μέτρο 
 - Κράτα τις απαντήσεις σύντομες (2-3 παράγραφοι max)
 - Κάνε μία ερώτηση τη φορά
 
-ΕΙΚΟΝΕΣ:
-- Αν ο μαθητής ζητάει εικόνα/διάγραμμα/σχήμα, περιέγραψε τι θα ήταν χρήσιμο να δει
-- Τελείωσε με: [ΘΕΛΩ_ΕΙΚΟΝΑ: περιγραφή της εικόνας στα αγγλικά]
-- Παράδειγμα: [ΘΕΛΩ_ΕΙΚΟΝΑ: simple diagram showing the water cycle with arrows]
+ΕΙΚΟΝΕΣ ΜΕ ΕΛΛΗΝΙΚΕΣ ΕΤΙΚΕΤΕΣ:
+Αν ο μαθητής ζητάει εικόνα/διάγραμμα/σχήμα:
+1. Πρώτα εξήγησε τι θα δείξει η εικόνα
+2. Τελείωσε με το ειδικό tag που περιέχει:
+   - Περιγραφή εικόνας στα ΑΓΓΛΙΚΑ (χωρίς κείμενο στην εικόνα)
+   - Ελληνικές ετικέτες με θέσεις (x%, y%)
+
+ΜΟΡΦΗ TAG:
+[ΕΙΚΟΝΑ]
+prompt: English description of image WITHOUT ANY TEXT. Clean diagram with arrows and visual elements only.
+labels:
+- text: "Ήλιος" | x: 15 | y: 10
+- text: "Νερό" | x: 50 | y: 85
+- text: "CO₂" | x: 20 | y: 40
+- text: "O₂" | x: 80 | y: 40
+[/ΕΙΚΟΝΑ]
+
+Σημαντικό: Οι θέσεις είναι ποσοστά (0-100) από αριστερά (x) και πάνω (y).
 
 ${ragContext}
 
@@ -191,7 +202,7 @@ ${ragContext}
     // Create streaming response
     const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      max_tokens: 1500,
       system: systemPrompt,
       messages: messages,
     });
@@ -214,30 +225,59 @@ ${ragContext}
           }
         }
 
-        // Check if AI wants to generate an image
-        const imageMatch = fullResponse.match(/\[ΘΕΛΩ_ΕΙΚΟΝΑ:\s*(.+?)\]/);
+        // Check if AI wants to generate an image with labels
+        const imageMatch = fullResponse.match(/\[ΕΙΚΟΝΑ\]([\s\S]*?)\[\/ΕΙΚΟΝΑ\]/);
         if (imageMatch) {
-          const imagePrompt = imageMatch[1];
+          const imageBlock = imageMatch[1];
           
-          try {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'generating_image' })}\n\n`));
-            
-            const imageResponse = await openai.images.generate({
-              model: 'dall-e-3',
-              prompt: `Educational illustration for Greek students. ${imagePrompt}. Safe for children, clear and simple, no text.`,
-              n: 1,
-              size: '1024x1024',
-              quality: 'standard',
+          // Parse prompt
+          const promptMatch = imageBlock.match(/prompt:\s*(.+?)(?=\nlabels:|$)/s);
+          const imagePrompt = promptMatch ? promptMatch[1].trim() : '';
+          
+          // Parse labels
+          const labels: { text: string; x: number; y: number }[] = [];
+          const labelMatches = imageBlock.matchAll(/- text:\s*"(.+?)"\s*\|\s*x:\s*(\d+)\s*\|\s*y:\s*(\d+)/g);
+          for (const match of labelMatches) {
+            labels.push({
+              text: match[1],
+              x: parseInt(match[2]),
+              y: parseInt(match[3])
             });
+          }
+          
+          if (imagePrompt) {
+            try {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'generating_image' })}\n\n`));
+              
+              // Generate clean image with DALL-E (NO TEXT)
+              const safePrompt = `Educational illustration for children. ${imagePrompt}. 
+CRITICAL: NO TEXT, NO LABELS, NO WORDS, NO LETTERS, NO NUMBERS anywhere in the image.
+Use only visual elements: arrows, icons, symbols, colors, shapes.
+Clean, simple, colorful, child-friendly style suitable for elementary school students.
+White or light background for clarity.`;
 
-            // Safely access the image URL
-            const imageUrl = imageResponse.data?.[0]?.url;
-            if (imageUrl) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'image', imageUrl })}\n\n`));
+              const imageResponse = await openai.images.generate({
+                model: 'dall-e-3',
+                prompt: safePrompt,
+                n: 1,
+                size: '1024x1024',
+                quality: 'standard',
+                style: 'vivid',
+              });
+
+              const imageUrl = imageResponse.data?.[0]?.url;
+              if (imageUrl) {
+                // Send image URL with labels for frontend overlay
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                  type: 'image_with_labels', 
+                  imageUrl,
+                  labels 
+                })}\n\n`));
+              }
+            } catch (imgError) {
+              console.error('Image generation error:', imgError);
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'image_error', error: 'Δεν μπόρεσα να δημιουργήσω εικόνα' })}\n\n`));
             }
-          } catch (imgError) {
-            console.error('Image generation error:', imgError);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'image_error', error: 'Δεν μπόρεσα να δημιουργήσω εικόνα' })}\n\n`));
           }
         }
 
