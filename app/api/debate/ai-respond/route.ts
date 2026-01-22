@@ -6,6 +6,8 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
+type Difficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
     const userSideGreek = userSide === 'affirmative' ? 'ΥΠΕΡ' : 'ΚΑΤΑ';
 
     // Difficulty settings
-    const difficultySettings: Record<string, { strength: string; feedback: string }> = {
+    const difficultySettings: Record<Difficulty, { strength: string; feedback: string }> = {
       beginner: {
         strength: 'Κάνε απλά επιχειρήματα, άσε κάποια κενά στη λογική σου που ο μαθητής μπορεί να εκμεταλλευτεί. Να είσαι ενθαρρυντικός.',
         feedback: 'Δώσε πολύ θετικό feedback και συγκεκριμένες συμβουλές για βελτίωση.'
@@ -54,12 +56,16 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    const settings = difficultySettings[difficulty] || difficultySettings.intermediate;
+    const validDifficulty: Difficulty = ['beginner', 'intermediate', 'advanced', 'expert'].includes(difficulty) 
+      ? difficulty as Difficulty 
+      : 'intermediate';
+    
+    const settings = difficultySettings[validDifficulty];
 
     // Build conversation history
     const conversationHistory = previousMessages
-      ?.filter((m: any) => m.role !== 'system')
-      .map((m: any) => `${m.role === 'user' ? 'Μαθητής' : 'AI'}: ${m.content}`)
+      ?.filter((m: { role: string; content: string }) => m.role !== 'system')
+      .map((m: { role: string; content: string }) => `${m.role === 'user' ? 'Μαθητής' : 'AI'}: ${m.content}`)
       .join('\n\n') || '';
 
     const systemPrompt = `Είσαι ένας AI αντίπαλος σε ένα εκπαιδευτικό debate για Έλληνες μαθητές.
@@ -125,22 +131,22 @@ ${userArgument}
         userScore = Math.min(10, Math.max(0, parseInt(scoreMatch[1])));
       }
       
-      // Extract feedback
-      const feedbackMatch = evalPart.match(/FEEDBACK:\s*(.+)/is);
+      // Extract feedback (removed 's' flag, use [\s\S] instead for multiline)
+      const feedbackMatch = evalPart.match(/FEEDBACK:\s*([\s\S]+)/i);
       if (feedbackMatch) {
         feedback = feedbackMatch[1].trim();
       }
     }
 
     // Calculate AI score based on difficulty
-    const aiBaseScore = {
+    const aiBaseScores: Record<Difficulty, number> = {
       beginner: 4,
       intermediate: 6,
       advanced: 7,
       expert: 8
-    }[difficulty] || 6;
+    };
     
-    const aiScore = aiBaseScore + Math.floor(Math.random() * 2);
+    const aiScore = aiBaseScores[validDifficulty] + Math.floor(Math.random() * 2);
 
     return NextResponse.json({
       aiArgument,
