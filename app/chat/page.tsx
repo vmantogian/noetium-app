@@ -22,6 +22,8 @@ interface Message {
   sources?: { title: string; source: string; similarity: number }[];
   imageUrl?: string;
   imageLabels?: Label[];
+  imageSource?: string;
+  isTextbook?: boolean;
   userImage?: string;
   isStreaming?: boolean;
 }
@@ -218,6 +220,8 @@ export default function ChatTutorPage() {
         let sources: any[] = [];
         let generatedImageUrl: string | null = null;
         let imageLabels: Label[] = [];
+        let isTextbook = false;
+        let imageSource = '';
         let rawContent = '';
 
         if (reader) {
@@ -249,6 +253,8 @@ export default function ChatTutorPage() {
                   } else if (data.type === 'image_with_labels') {
                     generatedImageUrl = data.imageUrl;
                     imageLabels = data.labels || [];
+                    isTextbook = data.isTextbook || false;
+                    imageSource = data.source || (data.curriculumBased ? 'σχολικό βιβλίο' : '');
                     setGeneratingImage(false);
                   } else if (data.type === 'image') {
                     generatedImageUrl = data.imageUrl;
@@ -275,6 +281,8 @@ export default function ChatTutorPage() {
                             sources: sources.length > 0 ? sources : undefined,
                             imageUrl: generatedImageUrl || undefined,
                             imageLabels: imageLabels.length > 0 ? imageLabels : undefined,
+                            isTextbook: isTextbook,
+                            imageSource: imageSource || undefined,
                             content: finalContent
                           }
                         : m
@@ -431,7 +439,7 @@ export default function ChatTutorPage() {
                   {message.content || (message.isStreaming ? '...' : '')}
                 </p>
 
-                {/* Generated image WITH GREEK LABELS */}
+                {/* Image - AI generated (curriculum-accurate) */}
                 {message.imageUrl && (
                   <div className="mt-4">
                     {message.imageLabels && message.imageLabels.length > 0 ? (
@@ -442,13 +450,13 @@ export default function ChatTutorPage() {
                     ) : (
                       <img 
                         src={message.imageUrl} 
-                        alt="Generated illustration" 
+                        alt="Educational illustration" 
                         className="max-w-full rounded-lg shadow-md"
                       />
                     )}
                     <p className="text-xs text-gray-600 mt-2">
-                      🎨 Εικόνα δημιουργήθηκε με AI
-                      {message.imageLabels && message.imageLabels.length > 0 && ' • Ελληνικές ετικέτες'}
+                      🎨 Εικόνα με GPT-4o
+                      {message.imageSource && ` • Βασισμένη σε: ${message.imageSource}`}
                     </p>
                   </div>
                 )}
