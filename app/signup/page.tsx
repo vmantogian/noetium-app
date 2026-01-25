@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 type UserRole = 'student' | 'teacher' | 'parent';
 
 function SignupForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedRole = searchParams.get('role') as UserRole | null;
   
@@ -19,12 +20,34 @@ function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   const roles: { id: UserRole; label: string; icon: string }[] = [
     { id: 'student', label: 'Μαθητής', icon: '👨‍🎓' },
     { id: 'teacher', label: 'Εκπαιδευτικός', icon: '👩‍🏫' },
     { id: 'parent', label: 'Γονέας', icon: '👨‍👩‍👧' },
   ];
+
+  // Clear any existing session when signup page loads
+  useEffect(() => {
+    const clearSession = async () => {
+      try {
+        const supabase = createClient();
+        // Check if there's an existing session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Sign out to clear the session for fresh signup
+          await supabase.auth.signOut();
+        }
+      } catch (err) {
+        console.error('Error clearing session:', err);
+      } finally {
+        setInitialized(true);
+      }
+    };
+    
+    clearSession();
+  }, []);
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,10 +96,17 @@ function SignupForm() {
 
     try {
       const supabase = createClient();
+      
+      // Make sure we're signed out before OAuth
+      await supabase.auth.signOut();
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback?role=${selectedRole}`,
+          queryParams: {
+            prompt: 'select_account', // Force Google to show account picker
+          },
         },
       });
 
@@ -89,6 +119,16 @@ function SignupForm() {
       setLoading(false);
     }
   };
+
+  // Show loading while clearing session
+  if (!initialized) {
+    return (
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
+        <div className="animate-spin w-8 h-8 border-4 border-[#2A50DF] border-t-transparent rounded-full mx-auto"></div>
+        <p className="mt-4 text-gray-600">Φόρτωση...</p>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -266,7 +306,6 @@ function SignupForm() {
   );
 }
 
-// Loading fallback for Suspense
 function SignupFormSkeleton() {
   return (
     <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-pulse">
