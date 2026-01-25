@@ -36,14 +36,14 @@ const subjectPrompts: Record<string, string> = {
 };
 
 // ============================================================================
-// IMAGE SEARCH: Find textbook descriptions for curriculum-accurate generation
+// IMAGE SEARCH: Find existing textbook images first
 // ============================================================================
 
-async function searchTextbookImageDescriptions(
+async function searchTextbookImages(
   supabase: any,
   query: string,
   subject?: string
-): Promise<{ description: string; source: string; labels: string[] } | null> {
+): Promise<{ imageUrl: string; description: string; source: string } | null> {
   try {
     const embeddingResponse = await openai.embeddings.create({
       model: 'text-embedding-3-small',
@@ -52,11 +52,11 @@ async function searchTextbookImageDescriptions(
     
     const embedding = embeddingResponse.data[0].embedding;
 
-    // Search for textbook image descriptions
+    // Search for textbook images
     const { data, error } = await supabase.rpc('search_educational_content', {
       query_embedding: embedding,
       match_threshold: 0.5,
-      match_count: 3,
+      match_count: 5,
       filter_subject: subject || null
     });
 
@@ -66,24 +66,21 @@ async function searchTextbookImageDescriptions(
 
     // Find best textbook image match
     for (const result of data) {
+      const imageUrl = result.metadata?.image_url;
       const isTextbookImage = result.metadata?.content_type === 'textbook_image';
       
-      if (isTextbookImage && result.similarity > 0.55) {
-        // Extract potential labels from description (Greek terms)
-        const greekTerms = result.content.match(/«[^»]+»|"[^"]+"/g) || [];
-        const labels = greekTerms.map((t: string) => t.replace(/[«»""]/g, ''));
-        
+      if (isTextbookImage && imageUrl && result.similarity > 0.5) {
         return {
+          imageUrl,
           description: result.content,
-          source: result.source_title || result.source,
-          labels: labels.slice(0, 6) // Max 6 labels
+          source: result.source_title || result.source
         };
       }
     }
 
     return null;
   } catch (error) {
-    console.error('Textbook description search error:', error);
+    console.error('Textbook image search error:', error);
     return null;
   }
 }
@@ -341,51 +338,48 @@ ${ragContext}
           const promptMatch = imageBlock.match(/prompt:\s*(.+?)(?=\nlabels:|$)/s);
           const imagePrompt = promptMatch ? promptMatch[1].trim() : '';
           
-          // Extract labels from Claude's response
+          // Extract labels from Claude's response (for AI-generated images)
           const labels: { text: string; x: number; y: number }[] = [];
           const labelMatches = imageBlock.matchAll(/- text:\s*"(.+?)"\s*\|\s*x:\s*(\d+)\s*\|\s*y:\s*(\d+)/g);
           for (const match of labelMatches) {
             labels.push({ text: match[1], x: parseInt(match[2]), y: parseInt(match[3]) });
           }
           
-          // Extract just the Greek label texts for GPT-4o
-          const greekLabelTexts = labels.map(l => l.text);
-          
           if (imagePrompt) {
             try {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'generating_image' })}\n\n`));
               
-              // STEP 1: Search for curriculum-accurate textbook description
-              const textbookMatch = await searchTextbookImageDescriptions(supabase, imagePrompt, dbSubject);
+              // STEP 1: Search for existing textbook image FIRST
+              const textbookImage = await searchTextbookImages(supabase, imagePrompt, dbSubject);
               
-              // STEP 2: Generate clean image with GPT-4o
-              // Use textbook description if found, otherwise use Claude's prompt
-              const generationPrompt = textbookMatch 
-                ? `${textbookMatch.description}. ${imagePrompt}`
-                : imagePrompt;
-              
-              // Combine labels from textbook and Claude's response
-              const allLabels = textbookMatch 
-                ? [...new Set([...textbookMatch.labels, ...greekLabelTexts])]
-                : greekLabelTexts;
-              
-              const generated = await generateImage(generationPrompt, allLabels);
-              
-              if (generated) {
+              if (textbookImage) {
+                // Found textbook image! Use it directly
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                   type: 'image_with_labels', 
-                  imageUrl: generated.url,
-                  labels: labels, // Keep position labels for overlay fallback
-                  provider: generated.provider,
-                  source: textbookMatch?.source || null,
-                  isTextbook: false,
-                  curriculumBased: !!textbookMatch
+                  imageUrl: textbookImage.imageUrl,
+                  labels: [],  // Textbook images have their own labels
+                  source: textbookImage.source,
+                  isTextbook: true
                 })}\n\n`));
               } else {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                  type: 'image_error', 
-                  error: 'Δεν μπόρεσα να δημιουργήσω εικόνα' 
-                })}\n\n`));
+                // STEP 2: No textbook image found - generate with AI
+                const greekLabelTexts = labels.map(l => l.text);
+                const generated = await generateImage(imagePrompt, greekLabelTexts);
+                
+                if (generated) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                    type: 'image_with_labels', 
+                    imageUrl: generated.url,
+                    labels,  // Include position labels for overlay
+                    provider: generated.provider,
+                    isTextbook: false
+                  })}\n\n`));
+                } else {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                    type: 'image_error', 
+                    error: 'Δεν μπόρεσα να δημιουργήσω εικόνα' 
+                  })}\n\n`));
+                }
               }
             } catch (imgError) {
               console.error('Image error:', imgError);

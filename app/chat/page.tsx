@@ -254,7 +254,7 @@ export default function ChatTutorPage() {
                     generatedImageUrl = data.imageUrl;
                     imageLabels = data.labels || [];
                     isTextbook = data.isTextbook || false;
-                    imageSource = data.source || (data.curriculumBased ? 'σχολικό βιβλίο' : '');
+                    imageSource = data.source || '';
                     setGeneratingImage(false);
                   } else if (data.type === 'image') {
                     generatedImageUrl = data.imageUrl;
@@ -439,7 +439,7 @@ export default function ChatTutorPage() {
                   {message.content || (message.isStreaming ? '...' : '')}
                 </p>
 
-                {/* Image - AI generated (curriculum-accurate) */}
+                {/* Image - textbook or AI generated */}
                 {message.imageUrl && (
                   <div className="mt-4">
                     {message.imageLabels && message.imageLabels.length > 0 ? (
@@ -455,8 +455,11 @@ export default function ChatTutorPage() {
                       />
                     )}
                     <p className="text-xs text-gray-600 mt-2">
-                      🎨 Εικόνα με GPT-4o
-                      {message.imageSource && ` • Βασισμένη σε: ${message.imageSource}`}
+                      {message.isTextbook ? (
+                        <>📖 Από σχολικό βιβλίο{message.imageSource && `: ${message.imageSource}`}</>
+                      ) : (
+                        <>🎨 Εικόνα με AI{message.imageLabels && message.imageLabels.length > 0 && ' • Ελληνικές ετικέτες'}</>
+                      )}
                     </p>
                   </div>
                 )}

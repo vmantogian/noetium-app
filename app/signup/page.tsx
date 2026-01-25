@@ -1,18 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+
+type UserRole = 'student' | 'teacher' | 'parent';
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedRole = searchParams.get('role') as UserRole | null;
+  
+  const [selectedRole, setSelectedRole] = useState<UserRole>(preselectedRole || 'student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const roles: { id: UserRole; label: string; icon: string }[] = [
+    { id: 'student', label: 'Μαθητής', icon: '👨‍🎓' },
+    { id: 'teacher', label: 'Εκπαιδευτικός', icon: '👩‍🏫' },
+    { id: 'parent', label: 'Γονέας', icon: '👨‍👩‍👧' },
+  ];
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +50,9 @@ export default function SignupPage() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            role: selectedRole,
+          },
         },
       });
 
@@ -61,7 +77,7 @@ export default function SignupPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?role=${selectedRole}`,
         },
       });
 
@@ -77,8 +93,8 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-600 to-indigo-700 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl text-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#2A50DF] via-[#25A1B0] to-[#D9325C] flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
           <div className="text-6xl mb-4">📧</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Έλεγξε το email σου!</h1>
           <p className="text-gray-600 mb-6">
@@ -86,7 +102,7 @@ export default function SignupPage() {
           </p>
           <Link 
             href="/login"
-            className="text-purple-600 hover:text-purple-800 font-medium"
+            className="text-[#2A50DF] hover:text-[#1E3DB8] font-medium"
           >
             ← Πίσω στη σύνδεση
           </Link>
@@ -96,18 +112,42 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-600 to-indigo-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-2">🎓</div>
+    <div className="min-h-screen bg-gradient-to-br from-[#2A50DF] via-[#25A1B0] to-[#D9325C] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+        {/* Logo - h-20 (80px) */}
+        <div className="text-center mb-6">
+          <Link href="/" className="inline-block">
+            <Image src="/logo.svg" alt="noetium AI" width={300} height={80} className="h-[80px] w-auto mx-auto" />
+          </Link>
+        </div>
+
+        {/* Header */}
+        <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Δημιουργία Λογαριασμού</h1>
-          <p className="text-gray-600 mt-1">Ξεκίνα το ταξίδι της μάθησης</p>
+          <p className="text-gray-600 mt-1">Επίλεξε τον ρόλο σου</p>
+        </div>
+
+        {/* Role Toggle Buttons */}
+        <div className="flex gap-2 mb-6">
+          {roles.map((role) => (
+            <button
+              key={role.id}
+              onClick={() => setSelectedRole(role.id)}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 rounded-xl font-medium transition-all ${
+                selectedRole === role.id
+                  ? 'bg-[#2A50DF] text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <span className="text-lg">{role.icon}</span>
+              <span className="text-sm sm:text-base">{role.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm">
             {error}
           </div>
         )}
@@ -153,7 +193,7 @@ export default function SignupPage() {
           </div>
         </div>
 
-        {/* Email Form */}
+        {/* Email Form - WHITE BACKGROUND INPUTS with dark text */}
         <form onSubmit={handleEmailSignup} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -166,7 +206,7 @@ export default function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+              className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2A50DF] focus:border-[#2A50DF] text-gray-900 placeholder-gray-400 transition-colors"
             />
           </div>
 
@@ -182,7 +222,7 @@ export default function SignupPage() {
               placeholder="••••••••"
               required
               minLength={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+              className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2A50DF] focus:border-[#2A50DF] text-gray-900 placeholder-gray-400 transition-colors"
             />
           </div>
 
@@ -198,14 +238,14 @@ export default function SignupPage() {
               placeholder="••••••••"
               required
               minLength={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+              className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2A50DF] focus:border-[#2A50DF] text-gray-900 placeholder-gray-400 transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
+            className="w-full py-3 bg-[#2A50DF] text-white rounded-xl font-medium hover:bg-[#1E3DB8] transition-colors disabled:opacity-50"
           >
             {loading ? 'Περίμενε...' : 'Δημιουργία Λογαριασμού'}
           </button>
@@ -214,7 +254,7 @@ export default function SignupPage() {
         {/* Login Link */}
         <p className="mt-6 text-center text-gray-600">
           Έχεις ήδη λογαριασμό;{' '}
-          <Link href="/login" className="text-purple-600 hover:text-purple-800 font-medium">
+          <Link href="/login" className="text-[#2A50DF] hover:text-[#1E3DB8] font-medium">
             Σύνδεση
           </Link>
         </p>
