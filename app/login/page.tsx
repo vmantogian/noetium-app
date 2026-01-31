@@ -97,15 +97,16 @@ function LoginForm() {
         />
       </div>
 
-      {/* Header with animated favicon */}
+      {/* Header with animated logo2 */}
       <div className="text-center mb-8">
         <div className="inline-block mb-4">
           <Image 
-            src="/favicon.svg" 
+            src="/logo2.svg" 
             alt="" 
-            width={64} 
-            height={64} 
-            className="w-16 h-16 animate-heartbeat"
+            width={72} 
+            height={72} 
+            className="w-18 h-18 animate-heartbeat"
+            style={{ width: '72px', height: '72px' }}
             priority
           />
         </div>
@@ -244,7 +245,7 @@ function LoginForm() {
   );
 }
 
-// Loading fallback with animated favicon
+// Loading fallback with animated logo
 function LoginFormSkeleton() {
   return (
     <div className="bg-white rounded-3xl p-8 md:p-10 w-full max-w-md shadow-2xl">
@@ -253,7 +254,7 @@ function LoginFormSkeleton() {
       </div>
       <div className="text-center mb-8">
         <div className="inline-block mb-4">
-          <div className="w-16 h-16 bg-gray-200 rounded-full animate-pulse"></div>
+          <div className="w-18 h-18 bg-gray-200 rounded-full animate-pulse" style={{ width: '72px', height: '72px' }}></div>
         </div>
         <div className="h-8 bg-gray-200 rounded-lg w-48 mx-auto mb-2 animate-pulse"></div>
         <div className="h-4 bg-gray-200 rounded w-36 mx-auto animate-pulse"></div>
