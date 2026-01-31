@@ -152,9 +152,69 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ========================================
-   ONBOARDING ANIMATIONS (NEW)
+   ONBOARDING & LOGIN ANIMATIONS
    ======================================== */
 
+/* Heartbeat animation - pulses then pauses */
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.15);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.1);
+  }
+  56% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 2s ease-in-out infinite;
+}
+
+/* Gentle breathing animation */
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.9;
+  }
+}
+
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* Spin with pause */
+@keyframes spin-pause {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-pause {
+  animation: spin-pause 4s ease-in-out infinite;
+}
+
+/* Slow spin */
 @keyframes spin-slow {
   from {
     transform: rotate(0deg);
@@ -164,6 +224,11 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+/* Fade in up */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -175,6 +240,11 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+.animate-fadeIn {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Float animation */
 @keyframes float {
   0%, 100% {
     transform: translateY(0);
@@ -184,6 +254,11 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Wiggle animation */
 @keyframes wiggle {
   0%, 100% {
     transform: rotate(-3deg);
@@ -191,18 +266,6 @@ h1, h2, h3, h4, h5, h6 {
   50% {
     transform: rotate(3deg);
   }
-}
-
-.animate-spin-slow {
-  animation: spin-slow 3s linear infinite;
-}
-
-.animate-fadeIn {
-  animation: fadeInUp 0.3s ease-out;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
 }
 
 .animate-wiggle {

@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 // Separate component that uses useSearchParams
@@ -23,7 +24,7 @@ function LoginForm() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -32,13 +33,29 @@ function LoginForm() {
         setError(error.message === 'Invalid login credentials' 
           ? 'Λάθος email ή κωδικός' 
           : error.message);
-      } else {
-        router.push(redirectTo);
+        setLoading(false);
+      } else if (data.user) {
+        // Check if onboarding is completed
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('onboarding_completed, user_type')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (profile?.onboarding_completed) {
+          // Go to appropriate dashboard
+          const dashboard = profile.user_type === 'teacher' ? '/teacher' 
+                          : profile.user_type === 'parent' ? '/parent' 
+                          : '/student';
+          router.push(dashboard);
+        } else {
+          // Go to onboarding
+          router.push('/onboarding');
+        }
         router.refresh();
       }
     } catch (err) {
       setError('Κάτι πήγε στραβά. Δοκίμασε ξανά.');
-    } finally {
       setLoading(false);
     }
   };
@@ -67,17 +84,38 @@ function LoginForm() {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl">
+    <div className="bg-white rounded-3xl p-8 md:p-10 w-full max-w-md shadow-2xl">
       {/* Logo */}
+      <div className="flex justify-center mb-6">
+        <Image 
+          src="/logo.svg" 
+          alt="Noetium" 
+          width={180} 
+          height={48} 
+          className="h-12 w-auto"
+          priority
+        />
+      </div>
+
+      {/* Header with animated favicon */}
       <div className="text-center mb-8">
-        <div className="text-5xl mb-2">🎓</div>
-        <h1 className="text-2xl font-bold text-gray-900">Καλώς ήρθες!</h1>
-        <p className="text-gray-600 mt-1">Συνδέσου στο Noetium</p>
+        <div className="inline-block mb-4">
+          <Image 
+            src="/favicon.svg" 
+            alt="" 
+            width={64} 
+            height={64} 
+            className="w-16 h-16 animate-heartbeat"
+            priority
+          />
+        </div>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Καλώς ήρθες!</h1>
+        <p className="text-gray-600 mt-2">Συνδέσου στο Noetium</p>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm">
           {error}
         </div>
       )}
@@ -87,7 +125,7 @@ function LoginForm() {
         <button
           onClick={() => handleOAuthLogin('google')}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3.5 border-2 border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -101,7 +139,7 @@ function LoginForm() {
         <button
           onClick={() => handleOAuthLogin('azure')}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3.5 border-2 border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#F25022" d="M1 1h10v10H1z"/>
@@ -119,14 +157,14 @@ function LoginForm() {
           <div className="w-full border-t border-gray-200"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white text-gray-500">ή με email</span>
+          <span className="px-4 bg-white text-gray-500">ή με email</span>
         </div>
       </div>
 
       {/* Email Form */}
       <form onSubmit={handleEmailLogin} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
             Email
           </label>
           <input
@@ -136,12 +174,13 @@ function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+            disabled={loading}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4EA6DC] focus:border-[#4EA6DC] text-gray-900 transition-all disabled:opacity-50 disabled:bg-gray-50"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
             Κωδικός
           </label>
           <input
@@ -151,16 +190,23 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+            disabled={loading}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4EA6DC] focus:border-[#4EA6DC] text-gray-900 transition-all disabled:opacity-50 disabled:bg-gray-50"
           />
         </div>
 
         <div className="flex items-center justify-between">
-          <label className="flex items-center">
-            <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+          <label className="flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="w-4 h-4 rounded border-gray-300 text-[#4EA6DC] focus:ring-[#4EA6DC]" 
+            />
             <span className="ml-2 text-sm text-gray-600">Να με θυμάσαι</span>
           </label>
-          <Link href="/forgot-password" className="text-sm text-purple-600 hover:text-purple-800">
+          <Link 
+            href="/forgot-password" 
+            className="text-sm text-[#4EA6DC] hover:text-[#113285] font-medium transition-colors"
+          >
             Ξέχασες τον κωδικό;
           </Link>
         </div>
@@ -168,16 +214,29 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
+          className="w-full py-3.5 bg-gradient-to-r from-[#4EA6DC] to-[#113285] text-white rounded-xl font-semibold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
         >
-          {loading ? 'Περίμενε...' : 'Σύνδεση'}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Περίμενε...
+            </span>
+          ) : (
+            'Σύνδεση'
+          )}
         </button>
       </form>
 
       {/* Signup Link */}
-      <p className="mt-6 text-center text-gray-600">
+      <p className="mt-8 text-center text-gray-600">
         Δεν έχεις λογαριασμό;{' '}
-        <Link href="/signup" className="text-purple-600 hover:text-purple-800 font-medium">
+        <Link 
+          href="/signup" 
+          className="text-[#E32D91] hover:text-[#C830CC] font-semibold transition-colors"
+        >
           Εγγραφή
         </Link>
       </p>
@@ -185,23 +244,28 @@ function LoginForm() {
   );
 }
 
-// Loading fallback
+// Loading fallback with animated favicon
 function LoginFormSkeleton() {
   return (
-    <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl animate-pulse">
+    <div className="bg-white rounded-3xl p-8 md:p-10 w-full max-w-md shadow-2xl">
+      <div className="flex justify-center mb-6">
+        <div className="h-12 w-44 bg-gray-200 rounded-lg animate-pulse"></div>
+      </div>
       <div className="text-center mb-8">
-        <div className="text-5xl mb-2">🎓</div>
-        <div className="h-8 bg-gray-200 rounded w-48 mx-auto mb-2"></div>
-        <div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div>
+        <div className="inline-block mb-4">
+          <div className="w-16 h-16 bg-gray-200 rounded-full animate-pulse"></div>
+        </div>
+        <div className="h-8 bg-gray-200 rounded-lg w-48 mx-auto mb-2 animate-pulse"></div>
+        <div className="h-4 bg-gray-200 rounded w-36 mx-auto animate-pulse"></div>
       </div>
       <div className="space-y-3 mb-6">
-        <div className="h-12 bg-gray-200 rounded-xl"></div>
-        <div className="h-12 bg-gray-200 rounded-xl"></div>
+        <div className="h-14 bg-gray-200 rounded-xl animate-pulse"></div>
+        <div className="h-14 bg-gray-200 rounded-xl animate-pulse"></div>
       </div>
       <div className="space-y-4">
-        <div className="h-12 bg-gray-200 rounded-xl"></div>
-        <div className="h-12 bg-gray-200 rounded-xl"></div>
-        <div className="h-12 bg-gray-200 rounded-xl"></div>
+        <div className="h-14 bg-gray-200 rounded-xl animate-pulse"></div>
+        <div className="h-14 bg-gray-200 rounded-xl animate-pulse"></div>
+        <div className="h-14 bg-gray-200 rounded-xl animate-pulse"></div>
       </div>
     </div>
   );
@@ -210,7 +274,13 @@ function LoginFormSkeleton() {
 // Main page component with Suspense
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-600 to-indigo-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#87F1FF] via-[#4EA6DC] to-[#113285] flex items-center justify-center p-4">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#E32D91]/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#C830CC]/20 rounded-full blur-3xl"></div>
+      </div>
+      
       <Suspense fallback={<LoginFormSkeleton />}>
         <LoginForm />
       </Suspense>
