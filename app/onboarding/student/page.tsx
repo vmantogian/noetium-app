@@ -71,19 +71,16 @@ const CUSTOM_AVATARS = ['🦊', '🐼', '🦋', '🌟', '🚀', '🎯', '💡', 
 // =====================================================
 
 const SUBJECTS_BY_GRADE: Record<string, { id: string; name: string; icon: string }[]> = {
-  // Γ'-Δ' Δημοτικού - NO Γεωγραφία, NO Φυσικά
+  // Γ'-Δ' Δημοτικού - Simplified, arts combined
   primary_3: [
     { id: 'greek_lang', name: 'Γλώσσα', icon: '📖' },
     { id: 'mathematics', name: 'Μαθηματικά', icon: '🔢' },
     { id: 'history', name: 'Ιστορία', icon: '📜' },
     { id: 'environment', name: 'Μελέτη Περιβάλλοντος', icon: '🌍' },
     { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
-    { id: 'art', name: 'Εικαστικά', icon: '🎨' },
-    { id: 'music', name: 'Μουσική', icon: '🎵' },
-    { id: 'theater', name: 'Θεατρική Αγωγή', icon: '🎭' },
+    { id: 'arts', name: 'Τέχνες', icon: '🎨' }, // Combined: Εικαστικά, Μουσική, Θεατρική
     { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
     { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
-    { id: 'skills_lab', name: 'Εργαστήρια Δεξιοτήτων', icon: '🔧' },
     { id: 'ict', name: 'Πληροφορική', icon: '💻' },
   ],
   primary_4: [
@@ -92,12 +89,9 @@ const SUBJECTS_BY_GRADE: Record<string, { id: string; name: string; icon: string
     { id: 'history', name: 'Ιστορία', icon: '📜' },
     { id: 'environment', name: 'Μελέτη Περιβάλλοντος', icon: '🌍' },
     { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
-    { id: 'art', name: 'Εικαστικά', icon: '🎨' },
-    { id: 'music', name: 'Μουσική', icon: '🎵' },
-    { id: 'theater', name: 'Θεατρική Αγωγή', icon: '🎭' },
+    { id: 'arts', name: 'Τέχνες', icon: '🎨' }, // Combined: Εικαστικά, Μουσική, Θεατρική
     { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
     { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
-    { id: 'skills_lab', name: 'Εργαστήρια Δεξιοτήτων', icon: '🔧' },
     { id: 'ict', name: 'Πληροφορική', icon: '💻' },
   ],
   // Ε'-ΣΤ' Δημοτικού - ADD Γεωγραφία, Φυσικά, Κοινωνική Αγωγή
@@ -107,11 +101,9 @@ const SUBJECTS_BY_GRADE: Record<string, { id: string; name: string; icon: string
     { id: 'history', name: 'Ιστορία', icon: '📜' },
     { id: 'geography', name: 'Γεωγραφία', icon: '🗺️' },
     { id: 'physics', name: 'Φυσικά', icon: '🔬' },
-    { id: 'social_studies', name: 'Κοινωνική Αγωγή', icon: '👥' },
+    { id: 'environment', name: 'Μελέτη Περιβάλλοντος', icon: '🌍' },
     { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
-    { id: 'art', name: 'Εικαστικά', icon: '🎨' },
-    { id: 'music', name: 'Μουσική', icon: '🎵' },
-    { id: 'theater', name: 'Θεατρική Αγωγή', icon: '🎭' },
+    { id: 'arts', name: 'Τέχνες', icon: '🎨' }, // Combined
     { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
     { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
     { id: 'ict', name: 'Πληροφορική', icon: '💻' },
@@ -122,11 +114,8 @@ const SUBJECTS_BY_GRADE: Record<string, { id: string; name: string; icon: string
     { id: 'history', name: 'Ιστορία', icon: '📜' },
     { id: 'geography', name: 'Γεωγραφία', icon: '🗺️' },
     { id: 'physics', name: 'Φυσικά', icon: '🔬' },
-    { id: 'social_studies', name: 'Κοινωνική Αγωγή', icon: '👥' },
     { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
-    { id: 'art', name: 'Εικαστικά', icon: '🎨' },
-    { id: 'music', name: 'Μουσική', icon: '🎵' },
-    { id: 'theater', name: 'Θεατρική Αγωγή', icon: '🎭' },
+    { id: 'arts', name: 'Τέχνες', icon: '🎨' }, // Combined
     { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
     { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
     { id: 'french_german', name: '2η Ξένη Γλώσσα', icon: '🇫🇷' },
@@ -633,7 +622,7 @@ export default function StudentOnboarding() {
             <p className="text-gray-600">Μαθήματα για {gradeName}</p>
           </div>
 
-          <div className={`grid ${theme.playful ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'} gap-3 mb-6`}>
+          <div className={`grid ${theme.playful ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'} gap-3 mb-6`}>
             {availableSubjects.map((subject) => {
               const isSelected = studentData.favoriteSubjects.includes(subject.id);
               return (
@@ -641,11 +630,13 @@ export default function StudentOnboarding() {
                   key={subject.id}
                   onClick={() => toggleSubject(subject.id)}
                   className={`p-4 rounded-xl border-2 transition-all ${
-                    isSelected ? `border-transparent bg-gradient-to-br ${theme.buttonGradient} text-white shadow-lg` : 'border-gray-200 bg-white'
+                    isSelected 
+                      ? `border-transparent bg-gradient-to-br ${theme.buttonGradient} text-white shadow-lg` 
+                      : 'border-gray-200 bg-white hover:border-gray-300'
                   }`}
                 >
                   <div className={`${theme.iconSize} mb-2`}>{subject.icon}</div>
-                  <div className={`${theme.playful ? 'text-base' : 'text-sm'} font-medium`}>{subject.name}</div>
+                  <div className={`${theme.playful ? 'text-base' : 'text-sm'} font-semibold ${isSelected ? 'text-white' : 'text-gray-800'}`}>{subject.name}</div>
                 </button>
               );
             })}
