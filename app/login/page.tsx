@@ -85,28 +85,16 @@ function LoginForm() {
 
   return (
     <div className="bg-white rounded-3xl p-8 md:p-10 w-full max-w-md shadow-2xl">
-      {/* Logo */}
-      <div className="flex justify-center mb-6">
-        <Image 
-          src="/logo.svg" 
-          alt="Noetium" 
-          width={180} 
-          height={48} 
-          className="h-12 w-auto"
-          priority
-        />
-      </div>
-
-      {/* Header with animated logo2 */}
-      <div className="text-center mb-8">
+      {/* Large animated logo */}
+      <div className="text-center mb-6">
         <div className="inline-block mb-4">
           <Image 
             src="/logo2.svg" 
-            alt="" 
-            width={72} 
-            height={72} 
-            className="w-18 h-18 animate-heartbeat"
-            style={{ width: '72px', height: '72px' }}
+            alt="Noetium" 
+            width={144} 
+            height={144} 
+            className="animate-heartbeat"
+            style={{ width: '144px', height: '144px' }}
             priority
           />
         </div>
@@ -245,16 +233,13 @@ function LoginForm() {
   );
 }
 
-// Loading fallback with animated logo
+// Loading fallback
 function LoginFormSkeleton() {
   return (
     <div className="bg-white rounded-3xl p-8 md:p-10 w-full max-w-md shadow-2xl">
-      <div className="flex justify-center mb-6">
-        <div className="h-12 w-44 bg-gray-200 rounded-lg animate-pulse"></div>
-      </div>
-      <div className="text-center mb-8">
+      <div className="text-center mb-6">
         <div className="inline-block mb-4">
-          <div className="w-18 h-18 bg-gray-200 rounded-full animate-pulse" style={{ width: '72px', height: '72px' }}></div>
+          <div className="bg-gray-200 rounded-full animate-pulse" style={{ width: '144px', height: '144px' }}></div>
         </div>
         <div className="h-8 bg-gray-200 rounded-lg w-48 mx-auto mb-2 animate-pulse"></div>
         <div className="h-4 bg-gray-200 rounded w-36 mx-auto animate-pulse"></div>
