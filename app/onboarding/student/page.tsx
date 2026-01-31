@@ -421,10 +421,15 @@ export default function StudentOnboarding() {
         onboarding_completed: true,
       });
 
-      await supabase.from('portfolios').insert({
-        student_id: user.id,
-        grade_level: studentData.grade,
-      }).select().single().catch(() => {});
+      // Create portfolio (ignore if already exists)
+      try {
+        await supabase.from('portfolios').insert({
+          student_id: user.id,
+          grade_level: studentData.grade,
+        });
+      } catch {
+        // Ignore duplicate key errors
+      }
 
       handleNext();
     } catch (err) {
