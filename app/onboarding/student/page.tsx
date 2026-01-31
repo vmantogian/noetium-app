@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client';
  * Subjects based on official Greek Ministry curriculum
  */
 
-type OnboardingStep = 'basics' | 'tutor' | 'subjects' | 'hobbies' | 'complete';
+type OnboardingStep = 'basics' | 'tutor' | 'subjects' | 'complete';
 type GradeLevel = 'primary_middle' | 'primary_upper' | 'gymnasium' | 'lyceum';
 
 interface StudentData {
@@ -22,7 +22,6 @@ interface StudentData {
   tutorName: string;
   tutorAvatar: string;
   favoriteSubjects: string[];
-  hobbies: string[];
 }
 
 // Grades starting from Γ' Δημοτικού
@@ -54,14 +53,14 @@ const getSuggestedGrade = (birthYear: number): string => {
   return 'lyceum_3';
 };
 
-// AI Tutors
+// AI Tutors - Simple names only
 const AI_TUTORS = [
-  { name: 'Αθηνά', description: 'Θεά της σοφίας', avatar: '🦉', gradient: 'from-purple-500 to-indigo-600' },
-  { name: 'Σωκράτης', description: 'Ο φιλόσοφος', avatar: '🏛️', gradient: 'from-amber-500 to-orange-600' },
-  { name: 'Αριστοτέλης', description: 'Ο δάσκαλος', avatar: '📚', gradient: 'from-emerald-500 to-teal-600' },
-  { name: 'Υπατία', description: 'Η μαθηματικός', avatar: '✨', gradient: 'from-pink-500 to-rose-600' },
-  { name: 'Νους', description: 'Ο έξυπνος βοηθός', avatar: '🧠', gradient: 'from-blue-500 to-cyan-600' },
-  { name: 'Δικό μου', description: 'Διάλεξε εσύ!', avatar: '🎨', gradient: 'from-violet-500 to-purple-600' },
+  { name: 'Αθηνά', avatar: '🦉', gradient: 'from-purple-500 to-indigo-600' },
+  { name: 'Σωκράτης', avatar: '🏛️', gradient: 'from-amber-500 to-orange-600' },
+  { name: 'Αριστοτέλης', avatar: '📚', gradient: 'from-emerald-500 to-teal-600' },
+  { name: 'Υπατία', avatar: '✨', gradient: 'from-pink-500 to-rose-600' },
+  { name: 'Νους', avatar: '🧠', gradient: 'from-blue-500 to-cyan-600' },
+  { name: 'Δικό μου', avatar: '🎨', gradient: 'from-violet-500 to-purple-600' },
 ];
 
 const CUSTOM_AVATARS = ['🦊', '🐼', '🦋', '🌟', '🚀', '🎯', '💡', '🔮', '🌈', '⚡', '🎭', '🎪'];
@@ -230,22 +229,6 @@ const SUBJECTS_BY_GRADE: Record<string, { id: string; name: string; icon: string
   ],
 };
 
-// Hobbies
-const HOBBIES = [
-  { id: 'sports', name: 'Αθλητισμός', icon: '⚽' },
-  { id: 'music', name: 'Μουσική', icon: '🎸' },
-  { id: 'gaming', name: 'Παιχνίδια', icon: '🎮' },
-  { id: 'reading', name: 'Διάβασμα', icon: '📚' },
-  { id: 'art', name: 'Ζωγραφική', icon: '🎨' },
-  { id: 'science', name: 'Επιστήμη', icon: '🔬' },
-  { id: 'nature', name: 'Φύση', icon: '🌿' },
-  { id: 'cooking', name: 'Μαγειρική', icon: '👨‍🍳' },
-  { id: 'dance', name: 'Χορός', icon: '💃' },
-  { id: 'travel', name: 'Ταξίδια', icon: '✈️' },
-  { id: 'photography', name: 'Φωτογραφία', icon: '📷' },
-  { id: 'coding', name: 'Coding', icon: '👨‍💻' },
-];
-
 // Get grade level for theming
 const getGradeLevel = (grade: string): GradeLevel => {
   if (['primary_3', 'primary_4'].includes(grade)) return 'primary_middle';
@@ -303,7 +286,6 @@ export default function StudentOnboarding() {
     tutorName: '',
     tutorAvatar: '',
     favoriteSubjects: [],
-    hobbies: [],
   });
   const [customTutorName, setCustomTutorName] = useState('');
   const [showCustomAvatars, setShowCustomAvatars] = useState(false);
@@ -356,16 +338,7 @@ export default function StudentOnboarding() {
     }));
   };
 
-  const toggleHobby = (hobbyId: string) => {
-    setStudentData(prev => ({
-      ...prev,
-      hobbies: prev.hobbies.includes(hobbyId)
-        ? prev.hobbies.filter(id => id !== hobbyId)
-        : [...prev.hobbies, hobbyId]
-    }));
-  };
-
-  const steps: OnboardingStep[] = ['basics', 'tutor', 'subjects', 'hobbies', 'complete'];
+  const steps: OnboardingStep[] = ['basics', 'tutor', 'subjects', 'complete'];
   const handleNext = () => {
     const idx = steps.indexOf(step);
     if (idx < steps.length - 1) setStep(steps[idx + 1]);
@@ -405,7 +378,6 @@ export default function StudentOnboarding() {
         favorite_subjects: studentData.favoriteSubjects,
         tutor_name: studentData.tutorName,
         tutor_avatar: studentData.tutorAvatar,
-        hobbies: studentData.hobbies,
         birth_year: studentData.birthYear,
         onboarding_completed: true,
       });
@@ -445,7 +417,7 @@ export default function StudentOnboarding() {
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
               <div className={`h-full bg-gradient-to-r ${theme.buttonGradient}`} style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-center text-sm text-gray-500 mt-2">Βήμα 1 από 4</p>
+            <p className="text-center text-sm text-gray-500 mt-2">Βήμα 1 από 3</p>
           </div>
 
           <div className="text-center mb-8">
@@ -534,12 +506,12 @@ export default function StudentOnboarding() {
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
               <div className={`h-full bg-gradient-to-r ${theme.buttonGradient}`} style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-center text-sm text-gray-500 mt-2">Βήμα 2 από 4</p>
+            <p className="text-center text-sm text-gray-500 mt-2">Βήμα 2 από 3</p>
           </div>
 
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {theme.playful ? '🤖 Διάλεξε τον βοηθό σου!' : 'Επέλεξε τον AI βοηθό σου'}
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+              Πώς θα ήθελες να λένε τον βοηθό σου;
             </h1>
           </div>
 
@@ -551,12 +523,11 @@ export default function StudentOnboarding() {
                   key={tutor.name}
                   onClick={() => handleTutorSelect(tutor)}
                   className={`p-6 rounded-2xl border-2 transition-all ${
-                    isSelected ? `border-transparent bg-gradient-to-br ${tutor.gradient} text-white shadow-lg` : 'border-gray-200 bg-white'
+                    isSelected ? `border-transparent bg-gradient-to-br ${tutor.gradient} text-white shadow-lg` : 'border-gray-200 bg-white hover:border-gray-300'
                   }`}
                 >
                   <div className={`${theme.iconSize} mb-3 ${isSelected ? 'animate-bounce' : ''}`}>{tutor.avatar}</div>
-                  <div className={`font-bold ${theme.fontSize}`}>{tutor.name}</div>
-                  <div className="text-sm opacity-80">{tutor.description}</div>
+                  <div className={`font-bold ${theme.fontSize} ${isSelected ? 'text-white' : 'text-gray-800'}`}>{tutor.name}</div>
                 </button>
               );
             })}
@@ -612,7 +583,7 @@ export default function StudentOnboarding() {
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
               <div className={`h-full bg-gradient-to-r ${theme.buttonGradient}`} style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-center text-sm text-gray-500 mt-2">Βήμα 3 από 4</p>
+            <p className="text-center text-sm text-gray-500 mt-2">Βήμα 3 από 3</p>
           </div>
 
           <div className="text-center mb-8">
@@ -644,59 +615,12 @@ export default function StudentOnboarding() {
 
           <p className="text-center text-sm text-gray-500 mb-6">{studentData.favoriteSubjects.length} επιλεγμένα (τουλάχιστον 1)</p>
 
-          <div className="flex gap-4">
-            <button onClick={handleBack} className="flex-1 py-4 border-2 border-gray-300 rounded-xl">← Πίσω</button>
-            <button onClick={handleNext} disabled={!canProceed()} className={`flex-1 py-4 bg-gradient-to-r ${theme.buttonGradient} text-white rounded-xl disabled:opacity-50`}>
-              {theme.playful ? 'Πάμε! 🚀' : 'Συνέχεια →'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== STEP 4: HOBBIES ====================
-  if (step === 'hobbies') {
-    return (
-      <div className={`min-h-screen bg-gradient-to-br ${theme.gradient} flex items-center justify-center p-4`}>
-        <div className="bg-white rounded-3xl p-8 md:p-12 w-full max-w-3xl shadow-2xl">
-          <div className="mb-8">
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div className={`h-full bg-gradient-to-r ${theme.buttonGradient}`} style={{ width: `${progress}%` }} />
-            </div>
-            <p className="text-center text-sm text-gray-500 mt-2">Βήμα 4 από 4</p>
-          </div>
-
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {theme.playful ? '🎯 Τι σου αρέσει να κάνεις;' : 'Ενδιαφέροντα (προαιρετικό)'}
-            </h1>
-          </div>
-
-          <div className={`grid ${theme.playful ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'} gap-3 mb-6`}>
-            {HOBBIES.map((hobby) => {
-              const isSelected = studentData.hobbies.includes(hobby.id);
-              return (
-                <button
-                  key={hobby.id}
-                  onClick={() => toggleHobby(hobby.id)}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    isSelected ? `border-transparent bg-gradient-to-br ${theme.buttonGradient} text-white shadow-lg` : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <div className={`${theme.iconSize} mb-2`}>{hobby.icon}</div>
-                  <div className="text-sm font-medium">{hobby.name}</div>
-                </button>
-              );
-            })}
-          </div>
-
           {error && <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-xl">{error}</div>}
 
           <div className="flex gap-4">
             <button onClick={handleBack} disabled={loading} className="flex-1 py-4 border-2 border-gray-300 rounded-xl disabled:opacity-50">← Πίσω</button>
-            <button onClick={handleComplete} disabled={loading} className={`flex-1 py-4 bg-gradient-to-r ${theme.buttonGradient} text-white rounded-xl disabled:opacity-50`}>
-              {loading ? 'Περίμενε...' : theme.playful ? 'Τέλειο! 🎉' : 'Ολοκλήρωση ✓'}
+            <button onClick={handleComplete} disabled={!canProceed() || loading} className={`flex-1 py-4 bg-gradient-to-r ${theme.buttonGradient} text-white rounded-xl disabled:opacity-50`}>
+              {loading ? 'Περίμενε...' : 'Ας ξεκινήσουμε! 🚀'}
             </button>
           </div>
         </div>
