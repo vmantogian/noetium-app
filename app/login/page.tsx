@@ -85,19 +85,19 @@ function LoginForm() {
 
   return (
     <div className="bg-white rounded-3xl p-8 md:p-10 w-full max-w-md shadow-2xl">
-      {/* Large animated logo */}
+      {/* Large animated logo - links to homepage */}
       <div className="text-center mb-6">
-        <div className="inline-block mb-4">
+        <Link href="/" className="inline-block mb-4 cursor-pointer hover:opacity-80 transition-opacity">
           <Image 
             src="/logo2.svg" 
-            alt="Noetium" 
+            alt="Noetium - Go to homepage" 
             width={144} 
             height={144} 
             className="animate-heartbeat"
             style={{ width: '144px', height: '144px' }}
             priority
           />
-        </div>
+        </Link>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Καλώς ήρθες!</h1>
         <p className="text-gray-600 mt-2">Συνδέσου στο Noetium</p>
       </div>
