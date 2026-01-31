@@ -1,29 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 /**
- * Improved Student Onboarding - Multi-Step Flow
- * 
- * Step 1: Name + Birth Year + Grade (separate, auto-suggested)
- * Step 2: Choose AI Tutor name and avatar
- * Step 3: Select subjects (filtered by grade)
- * Step 4: Hobbies/interests
- * Step 5: Complete
- * 
- * Features:
- * - Age-appropriate theming (playful for young, mature for older)
- * - High-quality animated emoji avatars
- * - Greek AI tutor names
- * - Hobby selection for personalization
+ * Student Onboarding - Starting from Γ' Δημοτικού (8+ years old)
+ * Subjects based on official Greek Ministry curriculum
  */
 
 type OnboardingStep = 'basics' | 'tutor' | 'subjects' | 'hobbies' | 'complete';
-
-type GradeLevel = 'primary_lower' | 'primary_upper' | 'gymnasium' | 'lyceum';
+type GradeLevel = 'primary_middle' | 'primary_upper' | 'gymnasium' | 'lyceum';
 
 interface StudentData {
   firstName: string;
@@ -36,12 +25,10 @@ interface StudentData {
   hobbies: string[];
 }
 
-// All grades available
+// Grades starting from Γ' Δημοτικού
 const ALL_GRADES = [
-  { id: 'primary_1', name: 'Α\' Δημοτικού', level: 'primary_lower' },
-  { id: 'primary_2', name: 'Β\' Δημοτικού', level: 'primary_lower' },
-  { id: 'primary_3', name: 'Γ\' Δημοτικού', level: 'primary_lower' },
-  { id: 'primary_4', name: 'Δ\' Δημοτικού', level: 'primary_upper' },
+  { id: 'primary_3', name: 'Γ\' Δημοτικού', level: 'primary_middle' },
+  { id: 'primary_4', name: 'Δ\' Δημοτικού', level: 'primary_middle' },
   { id: 'primary_5', name: 'Ε\' Δημοτικού', level: 'primary_upper' },
   { id: 'primary_6', name: 'ΣΤ\' Δημοτικού', level: 'primary_upper' },
   { id: 'gymnasium_1', name: 'Α\' Γυμνασίου', level: 'gymnasium' },
@@ -52,14 +39,10 @@ const ALL_GRADES = [
   { id: 'lyceum_3', name: 'Γ\' Λυκείου', level: 'lyceum' },
 ];
 
-// Birth year to suggested grade mapping (current year 2025)
+// Birth year to suggested grade (2025)
 const getSuggestedGrade = (birthYear: number): string => {
-  const currentYear = 2025;
-  const age = currentYear - birthYear;
-  
-  if (age <= 6) return 'primary_1';
-  if (age === 7) return 'primary_2';
-  if (age === 8) return 'primary_3';
+  const age = 2025 - birthYear;
+  if (age <= 8) return 'primary_3';
   if (age === 9) return 'primary_4';
   if (age === 10) return 'primary_5';
   if (age === 11) return 'primary_6';
@@ -68,102 +51,127 @@ const getSuggestedGrade = (birthYear: number): string => {
   if (age === 14) return 'gymnasium_3';
   if (age === 15) return 'lyceum_1';
   if (age === 16) return 'lyceum_2';
-  if (age >= 17) return 'lyceum_3';
-  return 'primary_1';
+  return 'lyceum_3';
 };
 
-// AI Tutor options with high-quality avatars
+// AI Tutors
 const AI_TUTORS = [
-  { 
-    name: 'Αθηνά', 
-    description: 'Θεά της σοφίας',
-    avatar: '🦉',
-    gradient: 'from-purple-500 to-indigo-600',
-    animation: 'animate-pulse'
-  },
-  { 
-    name: 'Σωκράτης', 
-    description: 'Ο φιλόσοφος',
-    avatar: '🏛️',
-    gradient: 'from-amber-500 to-orange-600',
-    animation: 'animate-bounce'
-  },
-  { 
-    name: 'Αριστοτέλης', 
-    description: 'Ο δάσκαλος',
-    avatar: '📚',
-    gradient: 'from-emerald-500 to-teal-600',
-    animation: 'animate-pulse'
-  },
-  { 
-    name: 'Υπατία', 
-    description: 'Η μαθηματικός',
-    avatar: '✨',
-    gradient: 'from-pink-500 to-rose-600',
-    animation: 'animate-spin-slow'
-  },
-  { 
-    name: 'Νους', 
-    description: 'Ο έξυπνος βοηθός',
-    avatar: '🧠',
-    gradient: 'from-blue-500 to-cyan-600',
-    animation: 'animate-pulse'
-  },
-  { 
-    name: 'Δικό μου', 
-    description: 'Διάλεξε εσύ!',
-    avatar: '🎨',
-    gradient: 'from-violet-500 to-purple-600',
-    animation: 'animate-bounce'
-  },
+  { name: 'Αθηνά', description: 'Θεά της σοφίας', avatar: '🦉', gradient: 'from-purple-500 to-indigo-600' },
+  { name: 'Σωκράτης', description: 'Ο φιλόσοφος', avatar: '🏛️', gradient: 'from-amber-500 to-orange-600' },
+  { name: 'Αριστοτέλης', description: 'Ο δάσκαλος', avatar: '📚', gradient: 'from-emerald-500 to-teal-600' },
+  { name: 'Υπατία', description: 'Η μαθηματικός', avatar: '✨', gradient: 'from-pink-500 to-rose-600' },
+  { name: 'Νους', description: 'Ο έξυπνος βοηθός', avatar: '🧠', gradient: 'from-blue-500 to-cyan-600' },
+  { name: 'Δικό μου', description: 'Διάλεξε εσύ!', avatar: '🎨', gradient: 'from-violet-500 to-purple-600' },
 ];
 
-// Custom avatar options for "Δικό μου"
 const CUSTOM_AVATARS = ['🦊', '🐼', '🦋', '🌟', '🚀', '🎯', '💡', '🔮', '🌈', '⚡', '🎭', '🎪'];
 
-// Subjects by grade level
-const SUBJECTS_BY_LEVEL: Record<string, { id: string; name: string; icon: string }[]> = {
-  primary_lower: [
+// =====================================================
+// CORRECT SUBJECTS PER GRADE - Based on Greek Curriculum
+// =====================================================
+
+const SUBJECTS_BY_GRADE: Record<string, { id: string; name: string; icon: string }[]> = {
+  // Γ'-Δ' Δημοτικού - NO Γεωγραφία, NO Φυσικά
+  primary_3: [
     { id: 'greek_lang', name: 'Γλώσσα', icon: '📖' },
     { id: 'mathematics', name: 'Μαθηματικά', icon: '🔢' },
-    { id: 'study_environment', name: 'Μελέτη Περιβάλλοντος', icon: '🌍' },
+    { id: 'history', name: 'Ιστορία', icon: '📜' },
+    { id: 'environment', name: 'Μελέτη Περιβάλλοντος', icon: '🌍' },
+    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
     { id: 'art', name: 'Εικαστικά', icon: '🎨' },
     { id: 'music', name: 'Μουσική', icon: '🎵' },
+    { id: 'theater', name: 'Θεατρική Αγωγή', icon: '🎭' },
     { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
     { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
-    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
+    { id: 'skills_lab', name: 'Εργαστήρια Δεξιοτήτων', icon: '🔧' },
+    { id: 'ict', name: 'Πληροφορική', icon: '💻' },
   ],
-  primary_upper: [
+  primary_4: [
+    { id: 'greek_lang', name: 'Γλώσσα', icon: '📖' },
+    { id: 'mathematics', name: 'Μαθηματικά', icon: '🔢' },
+    { id: 'history', name: 'Ιστορία', icon: '📜' },
+    { id: 'environment', name: 'Μελέτη Περιβάλλοντος', icon: '🌍' },
+    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
+    { id: 'art', name: 'Εικαστικά', icon: '🎨' },
+    { id: 'music', name: 'Μουσική', icon: '🎵' },
+    { id: 'theater', name: 'Θεατρική Αγωγή', icon: '🎭' },
+    { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
+    { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
+    { id: 'skills_lab', name: 'Εργαστήρια Δεξιοτήτων', icon: '🔧' },
+    { id: 'ict', name: 'Πληροφορική', icon: '💻' },
+  ],
+  // Ε'-ΣΤ' Δημοτικού - ADD Γεωγραφία, Φυσικά, Κοινωνική Αγωγή
+  primary_5: [
     { id: 'greek_lang', name: 'Γλώσσα', icon: '📖' },
     { id: 'mathematics', name: 'Μαθηματικά', icon: '🔢' },
     { id: 'history', name: 'Ιστορία', icon: '📜' },
     { id: 'geography', name: 'Γεωγραφία', icon: '🗺️' },
     { id: 'physics', name: 'Φυσικά', icon: '🔬' },
+    { id: 'social_studies', name: 'Κοινωνική Αγωγή', icon: '👥' },
+    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
     { id: 'art', name: 'Εικαστικά', icon: '🎨' },
     { id: 'music', name: 'Μουσική', icon: '🎵' },
+    { id: 'theater', name: 'Θεατρική Αγωγή', icon: '🎭' },
     { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
     { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
-    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
     { id: 'ict', name: 'Πληροφορική', icon: '💻' },
   ],
-  gymnasium: [
+  primary_6: [
+    { id: 'greek_lang', name: 'Γλώσσα', icon: '📖' },
+    { id: 'mathematics', name: 'Μαθηματικά', icon: '🔢' },
+    { id: 'history', name: 'Ιστορία', icon: '📜' },
+    { id: 'geography', name: 'Γεωγραφία', icon: '🗺️' },
+    { id: 'physics', name: 'Φυσικά', icon: '🔬' },
+    { id: 'social_studies', name: 'Κοινωνική Αγωγή', icon: '👥' },
+    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
+    { id: 'art', name: 'Εικαστικά', icon: '🎨' },
+    { id: 'music', name: 'Μουσική', icon: '🎵' },
+    { id: 'theater', name: 'Θεατρική Αγωγή', icon: '🎭' },
+    { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
+    { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
+    { id: 'french_german', name: '2η Ξένη Γλώσσα', icon: '🇫🇷' },
+    { id: 'ict', name: 'Πληροφορική', icon: '💻' },
+  ],
+  // Γυμνάσιο
+  gymnasium_1: [
     { id: 'greek_lang', name: 'Νεοελληνική Γλώσσα', icon: '📖' },
     { id: 'ancient_greek', name: 'Αρχαία Ελληνικά', icon: '🏛️' },
+    { id: 'literature', name: 'Λογοτεχνία', icon: '📚' },
     { id: 'mathematics', name: 'Μαθηματικά', icon: '🔢' },
     { id: 'physics', name: 'Φυσική', icon: '⚡' },
     { id: 'chemistry', name: 'Χημεία', icon: '🧪' },
     { id: 'biology', name: 'Βιολογία', icon: '🧬' },
-    { id: 'history', name: 'Ιστορία', icon: '📜' },
     { id: 'geography', name: 'Γεωγραφία', icon: '🗺️' },
+    { id: 'history', name: 'Ιστορία', icon: '📜' },
+    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
     { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
-    { id: 'french', name: 'Γαλλικά', icon: '🇫🇷' },
-    { id: 'german', name: 'Γερμανικά', icon: '🇩🇪' },
+    { id: 'french_german', name: '2η Ξένη Γλώσσα', icon: '🇫🇷' },
     { id: 'ict', name: 'Πληροφορική', icon: '💻' },
     { id: 'art', name: 'Εικαστικά', icon: '🎨' },
     { id: 'music', name: 'Μουσική', icon: '🎵' },
     { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
+    { id: 'home_economics', name: 'Οικιακή Οικονομία', icon: '🏠' },
   ],
-  lyceum: [
+  gymnasium_2: [
+    { id: 'greek_lang', name: 'Νεοελληνική Γλώσσα', icon: '📖' },
+    { id: 'ancient_greek', name: 'Αρχαία Ελληνικά', icon: '🏛️' },
+    { id: 'literature', name: 'Λογοτεχνία', icon: '📚' },
+    { id: 'mathematics', name: 'Μαθηματικά', icon: '🔢' },
+    { id: 'physics', name: 'Φυσική', icon: '⚡' },
+    { id: 'chemistry', name: 'Χημεία', icon: '🧪' },
+    { id: 'biology', name: 'Βιολογία', icon: '🧬' },
+    { id: 'geography', name: 'Γεωγραφία', icon: '🗺️' },
+    { id: 'history', name: 'Ιστορία', icon: '📜' },
+    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
+    { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
+    { id: 'french_german', name: '2η Ξένη Γλώσσα', icon: '🇫🇷' },
+    { id: 'ict', name: 'Πληροφορική', icon: '💻' },
+    { id: 'art', name: 'Εικαστικά', icon: '🎨' },
+    { id: 'music', name: 'Μουσική', icon: '🎵' },
+    { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
+    { id: 'social_civic', name: 'Κοινωνική & Πολιτική Αγωγή', icon: '🏛️' },
+  ],
+  gymnasium_3: [
     { id: 'greek_lang', name: 'Νεοελληνική Γλώσσα', icon: '📖' },
     { id: 'ancient_greek', name: 'Αρχαία Ελληνικά', icon: '🏛️' },
     { id: 'literature', name: 'Λογοτεχνία', icon: '📚' },
@@ -172,11 +180,63 @@ const SUBJECTS_BY_LEVEL: Record<string, { id: string; name: string; icon: string
     { id: 'chemistry', name: 'Χημεία', icon: '🧪' },
     { id: 'biology', name: 'Βιολογία', icon: '🧬' },
     { id: 'history', name: 'Ιστορία', icon: '📜' },
+    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
     { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
-    { id: 'economics', name: 'Οικονομικά', icon: '💰' },
-    { id: 'sociology', name: 'Κοινωνιολογία', icon: '👥' },
+    { id: 'french_german', name: '2η Ξένη Γλώσσα', icon: '🇫🇷' },
     { id: 'ict', name: 'Πληροφορική', icon: '💻' },
-    { id: 'philosophy', name: 'Φιλοσοφία', icon: '🤔' },
+    { id: 'art', name: 'Εικαστικά', icon: '🎨' },
+    { id: 'music', name: 'Μουσική', icon: '🎵' },
+    { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
+    { id: 'vocational', name: 'ΣΕΠ', icon: '🎯' },
+  ],
+  // Λύκειο
+  lyceum_1: [
+    { id: 'greek_lang', name: 'Νέα Ελληνικά', icon: '📖' },
+    { id: 'ancient_greek', name: 'Αρχαία Ελληνικά', icon: '🏛️' },
+    { id: 'literature', name: 'Λογοτεχνία', icon: '📚' },
+    { id: 'history', name: 'Ιστορία', icon: '📜' },
+    { id: 'mathematics_algebra', name: 'Άλγεβρα', icon: '🔢' },
+    { id: 'mathematics_geometry', name: 'Γεωμετρία', icon: '📐' },
+    { id: 'physics', name: 'Φυσική', icon: '⚡' },
+    { id: 'chemistry', name: 'Χημεία', icon: '🧪' },
+    { id: 'biology', name: 'Βιολογία', icon: '🧬' },
+    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
+    { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
+    { id: 'ict', name: 'Πληροφορική', icon: '💻' },
+    { id: 'economics', name: 'Οικονομία', icon: '💰' },
+    { id: 'sociology', name: 'Κοινωνιολογία', icon: '👥' },
+    { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
+  ],
+  lyceum_2: [
+    { id: 'greek_lang', name: 'Νέα Ελληνικά', icon: '📖' },
+    { id: 'ancient_greek', name: 'Αρχαία Ελληνικά', icon: '🏛️' },
+    { id: 'literature', name: 'Λογοτεχνία', icon: '📚' },
+    { id: 'history', name: 'Ιστορία', icon: '📜' },
+    { id: 'mathematics_algebra', name: 'Άλγεβρα', icon: '🔢' },
+    { id: 'mathematics_geometry', name: 'Γεωμετρία', icon: '📐' },
+    { id: 'physics', name: 'Φυσική', icon: '⚡' },
+    { id: 'chemistry', name: 'Χημεία', icon: '🧪' },
+    { id: 'biology', name: 'Βιολογία', icon: '🧬' },
+    { id: 'religious', name: 'Θρησκευτικά', icon: '⛪' },
+    { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
+    { id: 'ict', name: 'Πληροφορική', icon: '💻' },
+    { id: 'latin', name: 'Λατινικά', icon: '🏛️' },
+    { id: 'economics', name: 'Οικονομία', icon: '💰' },
+    { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
+  ],
+  lyceum_3: [
+    { id: 'greek_lang', name: 'Νέα Ελληνικά', icon: '📖' },
+    { id: 'ancient_greek', name: 'Αρχαία Ελληνικά', icon: '🏛️' },
+    { id: 'literature', name: 'Λογοτεχνία', icon: '📚' },
+    { id: 'history', name: 'Ιστορία', icon: '📜' },
+    { id: 'mathematics', name: 'Μαθηματικά', icon: '🔢' },
+    { id: 'physics', name: 'Φυσική', icon: '⚡' },
+    { id: 'chemistry', name: 'Χημεία', icon: '🧪' },
+    { id: 'biology', name: 'Βιολογία', icon: '🧬' },
+    { id: 'english', name: 'Αγγλικά', icon: '🇬🇧' },
+    { id: 'latin', name: 'Λατινικά', icon: '🏛️' },
+    { id: 'economics', name: 'Οικονομία', icon: '💰' },
+    { id: 'sociology', name: 'Κοινωνιολογία', icon: '👥' },
     { id: 'pe', name: 'Φυσική Αγωγή', icon: '⚽' },
   ],
 };
@@ -185,7 +245,7 @@ const SUBJECTS_BY_LEVEL: Record<string, { id: string; name: string; icon: string
 const HOBBIES = [
   { id: 'sports', name: 'Αθλητισμός', icon: '⚽' },
   { id: 'music', name: 'Μουσική', icon: '🎸' },
-  { id: 'gaming', name: 'Βιντεοπαιχνίδια', icon: '🎮' },
+  { id: 'gaming', name: 'Παιχνίδια', icon: '🎮' },
   { id: 'reading', name: 'Διάβασμα', icon: '📚' },
   { id: 'art', name: 'Ζωγραφική', icon: '🎨' },
   { id: 'science', name: 'Επιστήμη', icon: '🔬' },
@@ -194,52 +254,52 @@ const HOBBIES = [
   { id: 'dance', name: 'Χορός', icon: '💃' },
   { id: 'travel', name: 'Ταξίδια', icon: '✈️' },
   { id: 'photography', name: 'Φωτογραφία', icon: '📷' },
-  { id: 'coding', name: 'Προγραμματισμός', icon: '👨‍💻' },
+  { id: 'coding', name: 'Coding', icon: '👨‍💻' },
 ];
 
 // Get grade level for theming
 const getGradeLevel = (grade: string): GradeLevel => {
-  if (['primary_1', 'primary_2', 'primary_3'].includes(grade)) return 'primary_lower';
-  if (['primary_4', 'primary_5', 'primary_6'].includes(grade)) return 'primary_upper';
-  if (grade.startsWith('gymnasium')) return 'gymnasium';
+  if (['primary_3', 'primary_4'].includes(grade)) return 'primary_middle';
+  if (['primary_5', 'primary_6'].includes(grade)) return 'primary_upper';
+  if (grade?.startsWith('gymnasium')) return 'gymnasium';
   return 'lyceum';
 };
 
-// Theme configurations based on grade level
+// Theme configurations
 const THEMES: Record<GradeLevel, {
   gradient: string;
-  cardBg: string;
   buttonGradient: string;
-  accent: string;
   playful: boolean;
+  fontSize: string;
+  iconSize: string;
 }> = {
-  primary_lower: {
+  primary_middle: {
     gradient: 'from-yellow-400 via-orange-400 to-pink-500',
-    cardBg: 'bg-white',
     buttonGradient: 'from-orange-500 to-pink-500',
-    accent: 'text-orange-600',
     playful: true,
+    fontSize: 'text-xl',
+    iconSize: 'text-5xl',
   },
   primary_upper: {
     gradient: 'from-green-400 via-teal-500 to-blue-500',
-    cardBg: 'bg-white',
     buttonGradient: 'from-teal-500 to-blue-500',
-    accent: 'text-teal-600',
     playful: true,
+    fontSize: 'text-lg',
+    iconSize: 'text-4xl',
   },
   gymnasium: {
     gradient: 'from-blue-500 via-indigo-500 to-purple-600',
-    cardBg: 'bg-white',
     buttonGradient: 'from-indigo-500 to-purple-600',
-    accent: 'text-indigo-600',
     playful: false,
+    fontSize: 'text-base',
+    iconSize: 'text-3xl',
   },
   lyceum: {
     gradient: 'from-slate-700 via-blue-800 to-indigo-900',
-    cardBg: 'bg-white',
     buttonGradient: 'from-blue-600 to-indigo-700',
-    accent: 'text-blue-700',
     playful: false,
+    fontSize: 'text-base',
+    iconSize: 'text-3xl',
   },
 };
 
@@ -261,58 +321,43 @@ export default function StudentOnboarding() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get current theme based on grade
   const gradeLevel = studentData.grade ? getGradeLevel(studentData.grade) : 'gymnasium';
   const theme = THEMES[gradeLevel];
   
-  // Get subjects for current grade level
-  const availableSubjects = SUBJECTS_BY_LEVEL[gradeLevel] || SUBJECTS_BY_LEVEL.gymnasium;
+  // Get subjects for SPECIFIC grade (not grade level!)
+  const availableSubjects = SUBJECTS_BY_GRADE[studentData.grade] || [];
 
-  // Generate birth years (1990 to current year - 5)
-  const currentYear = new Date().getFullYear();
-  const birthYears = Array.from({ length: currentYear - 1990 - 4 }, (_, i) => currentYear - 5 - i);
+  // Birth years (8-18 years old)
+  const birthYears = Array.from({ length: 11 }, (_, i) => 2025 - 8 - i);
 
-  // Handle birth year change - auto-suggest grade
   const handleBirthYearChange = (year: number) => {
     const suggestedGrade = getSuggestedGrade(year);
     setStudentData(prev => ({
       ...prev,
       birthYear: year,
       grade: suggestedGrade,
-      favoriteSubjects: [], // Reset subjects when grade changes
+      favoriteSubjects: [], // Reset when grade changes
     }));
   };
 
-  // Handle grade change
   const handleGradeChange = (grade: string) => {
     setStudentData(prev => ({
       ...prev,
       grade,
-      favoriteSubjects: [], // Reset subjects when grade changes
+      favoriteSubjects: [], // Reset when grade changes
     }));
   };
 
-  // Handle tutor selection
   const handleTutorSelect = (tutor: typeof AI_TUTORS[0]) => {
     if (tutor.name === 'Δικό μου') {
       setShowCustomAvatars(true);
       setStudentData(prev => ({ ...prev, tutorName: '', tutorAvatar: '' }));
     } else {
       setShowCustomAvatars(false);
-      setStudentData(prev => ({ 
-        ...prev, 
-        tutorName: tutor.name, 
-        tutorAvatar: tutor.avatar 
-      }));
+      setStudentData(prev => ({ ...prev, tutorName: tutor.name, tutorAvatar: tutor.avatar }));
     }
   };
 
-  // Handle custom avatar selection
-  const handleCustomAvatar = (avatar: string) => {
-    setStudentData(prev => ({ ...prev, tutorAvatar: avatar }));
-  };
-
-  // Toggle subject selection
   const toggleSubject = (subjectId: string) => {
     setStudentData(prev => ({
       ...prev,
@@ -322,7 +367,6 @@ export default function StudentOnboarding() {
     }));
   };
 
-  // Toggle hobby selection
   const toggleHobby = (hobbyId: string) => {
     setStudentData(prev => ({
       ...prev,
@@ -332,41 +376,25 @@ export default function StudentOnboarding() {
     }));
   };
 
-  // Navigation
   const steps: OnboardingStep[] = ['basics', 'tutor', 'subjects', 'hobbies', 'complete'];
-  
   const handleNext = () => {
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex < steps.length - 1) {
-      setStep(steps[currentIndex + 1]);
-    }
+    const idx = steps.indexOf(step);
+    if (idx < steps.length - 1) setStep(steps[idx + 1]);
   };
-
   const handleBack = () => {
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex > 0) {
-      setStep(steps[currentIndex - 1]);
-    }
+    const idx = steps.indexOf(step);
+    if (idx > 0) setStep(steps[idx - 1]);
   };
 
-  // Validation
   const canProceed = () => {
     switch (step) {
-      case 'basics':
-        return studentData.firstName.trim() && studentData.lastName.trim() && 
-               studentData.birthYear && studentData.grade;
-      case 'tutor':
-        return studentData.tutorName.trim() && studentData.tutorAvatar;
-      case 'subjects':
-        return studentData.favoriteSubjects.length > 0;
-      case 'hobbies':
-        return true; // Optional
-      default:
-        return true;
+      case 'basics': return studentData.firstName.trim() && studentData.birthYear && studentData.grade;
+      case 'tutor': return studentData.tutorName.trim() && studentData.tutorAvatar;
+      case 'subjects': return studentData.favoriteSubjects.length > 0;
+      default: return true;
     }
   };
 
-  // Complete onboarding
   const handleComplete = async () => {
     setLoading(true);
     setError(null);
@@ -374,180 +402,128 @@ export default function StudentOnboarding() {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user');
 
-      if (!user) throw new Error('No user found');
+      await supabase.from('user_profiles').update({
+        name: studentData.lastName ? `${studentData.firstName} ${studentData.lastName}` : studentData.firstName,
+        grade_level: studentData.grade,
+        onboarding_completed: true,
+      }).eq('user_id', user.id);
 
-      // Update user profile
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .update({
-          name: `${studentData.firstName} ${studentData.lastName}`,
-          grade: studentData.grade,
-          grade_level: studentData.grade,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id);
+      await supabase.from('student_profiles').upsert({
+        user_id: user.id,
+        grade: studentData.grade,
+        favorite_subjects: studentData.favoriteSubjects,
+        tutor_name: studentData.tutorName,
+        tutor_avatar: studentData.tutorAvatar,
+        hobbies: studentData.hobbies,
+        birth_year: studentData.birthYear,
+        onboarding_completed: true,
+      });
 
-      if (profileError) throw profileError;
+      await supabase.from('portfolios').insert({
+        student_id: user.id,
+        grade_level: studentData.grade,
+      }).select().single().catch(() => {});
 
-      // Create student profile with tutor and hobbies
-      const { error: studentError } = await supabase
-        .from('student_profiles')
-        .upsert({
-          user_id: user.id,
-          grade: studentData.grade,
-          favorite_subjects: studentData.favoriteSubjects,
-          tutor_name: studentData.tutorName,
-          tutor_avatar: studentData.tutorAvatar,
-          hobbies: studentData.hobbies,
-          birth_year: studentData.birthYear,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (studentError) throw studentError;
-
-      // Create portfolio
-      const { error: portfolioError } = await supabase
-        .from('portfolios')
-        .insert({
-          student_id: user.id,
-          grade_level: studentData.grade,
-        });
-
-      if (portfolioError && portfolioError.code !== '23505') {
-        console.warn('Portfolio creation warning:', portfolioError);
-      }
-
-      handleNext(); // Go to complete step
+      handleNext();
     } catch (err) {
-      console.error('Onboarding error:', err);
       setError('Κάτι πήγε στραβά. Δοκίμασε ξανά.');
       setLoading(false);
     }
   };
 
-  // Progress indicator
-  const stepIndex = steps.indexOf(step);
-  const progress = ((stepIndex) / (steps.length - 1)) * 100;
+  const progress = (steps.indexOf(step) / (steps.length - 1)) * 100;
+  const gradeName = ALL_GRADES.find(g => g.id === studentData.grade)?.name || '';
 
   // ==================== STEP 1: BASICS ====================
   if (step === 'basics') {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${theme.gradient} flex items-center justify-center p-4`}>
-        <div className={`${theme.cardBg} rounded-3xl p-8 md:p-12 w-full max-w-2xl shadow-2xl`}>
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <Image src="/logo.svg" alt="Noetium" width={180} height={48} className="h-12 w-auto" />
+        <div className="bg-white rounded-3xl p-8 md:p-12 w-full max-w-2xl shadow-2xl">
+          <div className="flex justify-center mb-4">
+            <Link href="/">
+              <Image src="/logo2.svg" alt="Noetium" width={80} height={80} className="animate-heartbeat" />
+            </Link>
           </div>
-
-          {/* Progress */}
+          
           <div className="mb-8">
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className={`h-full bg-gradient-to-r ${theme.buttonGradient} transition-all duration-500`}
-                style={{ width: `${progress}%` }}
-              />
+              <div className={`h-full bg-gradient-to-r ${theme.buttonGradient}`} style={{ width: `${progress}%` }} />
             </div>
             <p className="text-center text-sm text-gray-500 mt-2">Βήμα 1 από 4</p>
           </div>
 
-          {/* Header */}
           <div className="text-center mb-8">
-            <h1 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-2 ${theme.playful ? 'animate-pulse' : ''}`}>
-              {theme.playful ? '🎉 ' : ''}Γεια σου! Ας γνωριστούμε{theme.playful ? ' 🎉' : ''}
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {theme.playful ? '🎉 Γεια σου!' : '👋 Καλώς ήρθες!'}
             </h1>
-            <p className="text-gray-600">
-              Πες μας λίγα πράγματα για σένα
-            </p>
+            <p className="text-gray-600">{theme.playful ? 'Πες μας λίγα για σένα!' : 'Ας γνωριστούμε'}</p>
           </div>
 
           <div className="space-y-6">
-            {/* Name Fields */}
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className={gradeLevel === 'primary_middle' ? '' : 'grid md:grid-cols-2 gap-4'}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Όνομα *
+                <label className={`block font-medium text-gray-700 mb-2 ${theme.fontSize}`}>
+                  {theme.playful ? 'Πώς σε λένε; 😊' : 'Όνομα *'}
                 </label>
                 <input
                   type="text"
                   value={studentData.firstName}
                   onChange={(e) => setStudentData({ ...studentData, firstName: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 transition-all"
-                  placeholder="π.χ. Μαρία"
+                  className={`w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-gray-900 ${theme.fontSize}`}
+                  placeholder={theme.playful ? 'π.χ. Μαρία' : 'Όνομα'}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Επώνυμο *
-                </label>
-                <input
-                  type="text"
-                  value={studentData.lastName}
-                  onChange={(e) => setStudentData({ ...studentData, lastName: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 transition-all"
-                  placeholder="π.χ. Παπαδοπούλου"
-                />
-              </div>
+              {gradeLevel !== 'primary_middle' && (
+                <div>
+                  <label className={`block font-medium text-gray-700 mb-2 ${theme.fontSize}`}>Επώνυμο</label>
+                  <input
+                    type="text"
+                    value={studentData.lastName}
+                    onChange={(e) => setStudentData({ ...studentData, lastName: e.target.value })}
+                    className={`w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 ${theme.fontSize}`}
+                    placeholder="Επώνυμο"
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Birth Year and Grade - Separate Fields */}
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Έτος γέννησης *
+                <label className={`block font-medium text-gray-700 mb-2 ${theme.fontSize}`}>
+                  {theme.playful ? 'Πότε γεννήθηκες; 🎂' : 'Έτος γέννησης *'}
                 </label>
                 <select
                   value={studentData.birthYear || ''}
                   onChange={(e) => handleBirthYearChange(Number(e.target.value))}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 transition-all"
+                  className={`w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 ${theme.fontSize}`}
                 >
-                  <option value="">Επέλεξε έτος</option>
-                  {birthYears.map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
+                  <option value="">Επέλεξε</option>
+                  {birthYears.map((year) => <option key={year} value={year}>{year}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Τάξη *
+                <label className={`block font-medium text-gray-700 mb-2 ${theme.fontSize}`}>
+                  {theme.playful ? 'Σε ποια τάξη είσαι; 🏫' : 'Τάξη *'}
                 </label>
                 <select
                   value={studentData.grade}
                   onChange={(e) => handleGradeChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 transition-all"
+                  className={`w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 ${theme.fontSize}`}
                 >
-                  <option value="">Επέλεξε τάξη</option>
-                  {ALL_GRADES.map((grade) => (
-                    <option key={grade.id} value={grade.id}>{grade.name}</option>
-                  ))}
+                  <option value="">Επέλεξε</option>
+                  {ALL_GRADES.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
               </div>
             </div>
 
-            {/* Auto-suggestion hint */}
-            {studentData.birthYear && studentData.grade && (
-              <div className={`p-4 rounded-xl ${theme.playful ? 'bg-yellow-50 border-2 border-yellow-200' : 'bg-blue-50 border-2 border-blue-200'}`}>
-                <p className="text-sm text-gray-600">
-                  {theme.playful ? '✨ ' : ''}
-                  Με βάση το έτος γέννησής σου, προτείναμε: <strong>{ALL_GRADES.find(g => g.id === getSuggestedGrade(studentData.birthYear!))?.name}</strong>
-                  {studentData.grade !== getSuggestedGrade(studentData.birthYear!) && (
-                    <span className="block mt-1 text-gray-500">
-                      (Μπορείς να το αλλάξεις αν είσαι σε διαφορετική τάξη)
-                    </span>
-                  )}
-                </p>
-              </div>
-            )}
-
-            {/* Submit Button */}
             <button
               onClick={handleNext}
               disabled={!canProceed()}
-              className={`w-full py-4 bg-gradient-to-r ${theme.buttonGradient} text-white text-lg font-semibold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]`}
+              className={`w-full py-4 bg-gradient-to-r ${theme.buttonGradient} text-white ${theme.fontSize} font-semibold rounded-xl hover:opacity-90 disabled:opacity-50`}
             >
-              Συνέχεια →
+              {theme.playful ? 'Πάμε! 🚀' : 'Συνέχεια →'}
             </button>
           </div>
         </div>
@@ -555,131 +531,77 @@ export default function StudentOnboarding() {
     );
   }
 
-  // ==================== STEP 2: AI TUTOR ====================
+  // ==================== STEP 2: TUTOR ====================
   if (step === 'tutor') {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${theme.gradient} flex items-center justify-center p-4`}>
-        <div className={`${theme.cardBg} rounded-3xl p-8 md:p-12 w-full max-w-3xl shadow-2xl`}>
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <Image src="/logo.svg" alt="Noetium" width={180} height={48} className="h-12 w-auto" />
-          </div>
-
-          {/* Progress */}
+        <div className="bg-white rounded-3xl p-8 md:p-12 w-full max-w-3xl shadow-2xl">
           <div className="mb-8">
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className={`h-full bg-gradient-to-r ${theme.buttonGradient} transition-all duration-500`}
-                style={{ width: `${progress}%` }}
-              />
+              <div className={`h-full bg-gradient-to-r ${theme.buttonGradient}`} style={{ width: `${progress}%` }} />
             </div>
             <p className="text-center text-sm text-gray-500 mt-2">Βήμα 2 από 4</p>
           </div>
 
-          {/* Header */}
           <div className="text-center mb-8">
-            <h1 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-2`}>
-              {theme.playful ? '🤖 ' : ''}Διάλεξε τον AI βοηθό σου{theme.playful ? ' 🤖' : ''}
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {theme.playful ? '🤖 Διάλεξε τον βοηθό σου!' : 'Επέλεξε τον AI βοηθό σου'}
             </h1>
-            <p className="text-gray-600">
-              Ποιος θα σε βοηθάει στη μάθηση;
-            </p>
           </div>
 
-          {/* Tutor Options */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             {AI_TUTORS.map((tutor) => {
-              const isSelected = studentData.tutorName === tutor.name || 
-                                (tutor.name === 'Δικό μου' && showCustomAvatars);
+              const isSelected = studentData.tutorName === tutor.name || (tutor.name === 'Δικό μου' && showCustomAvatars);
               return (
                 <button
                   key={tutor.name}
                   onClick={() => handleTutorSelect(tutor)}
-                  className={`p-6 rounded-2xl border-2 transition-all transform hover:scale-105 ${
-                    isSelected
-                      ? `border-transparent bg-gradient-to-br ${tutor.gradient} text-white shadow-lg scale-105`
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  className={`p-6 rounded-2xl border-2 transition-all ${
+                    isSelected ? `border-transparent bg-gradient-to-br ${tutor.gradient} text-white shadow-lg` : 'border-gray-200 bg-white'
                   }`}
                 >
-                  <div className={`text-5xl mb-3 ${isSelected ? tutor.animation : ''}`}>
-                    {tutor.avatar}
-                  </div>
-                  <div className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-gray-900'}`}>
-                    {tutor.name}
-                  </div>
-                  <div className={`text-sm ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
-                    {tutor.description}
-                  </div>
+                  <div className={`${theme.iconSize} mb-3 ${isSelected ? 'animate-bounce' : ''}`}>{tutor.avatar}</div>
+                  <div className={`font-bold ${theme.fontSize}`}>{tutor.name}</div>
+                  <div className="text-sm opacity-80">{tutor.description}</div>
                 </button>
               );
             })}
           </div>
 
-          {/* Custom Name & Avatar */}
           {showCustomAvatars && (
-            <div className="bg-gray-50 rounded-2xl p-6 mb-6 animate-fadeIn">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Δώσε όνομα στον βοηθό σου
-                </label>
-                <input
-                  type="text"
-                  value={customTutorName}
-                  onChange={(e) => {
-                    setCustomTutorName(e.target.value);
-                    setStudentData(prev => ({ ...prev, tutorName: e.target.value }));
-                  }}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                  placeholder="π.χ. Σπάρκι, Ελπίδα, Φώτης..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Διάλεξε εικονίδιο
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  {CUSTOM_AVATARS.map((avatar) => (
-                    <button
-                      key={avatar}
-                      onClick={() => handleCustomAvatar(avatar)}
-                      className={`w-14 h-14 text-3xl rounded-xl transition-all transform hover:scale-110 ${
-                        studentData.tutorAvatar === avatar
-                          ? 'bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg scale-110'
-                          : 'bg-white border-2 border-gray-200 hover:border-purple-300'
-                      }`}
-                    >
-                      {avatar}
-                    </button>
-                  ))}
-                </div>
+            <div className="bg-gray-50 rounded-2xl p-6 mb-6">
+              <input
+                type="text"
+                value={customTutorName}
+                onChange={(e) => { setCustomTutorName(e.target.value); setStudentData(prev => ({ ...prev, tutorName: e.target.value })); }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl mb-4"
+                placeholder="Όνομα βοηθού..."
+              />
+              <div className="flex flex-wrap gap-3">
+                {CUSTOM_AVATARS.map((avatar) => (
+                  <button
+                    key={avatar}
+                    onClick={() => setStudentData(prev => ({ ...prev, tutorAvatar: avatar }))}
+                    className={`w-14 h-14 text-3xl rounded-xl ${studentData.tutorAvatar === avatar ? 'bg-purple-500 shadow-lg' : 'bg-white border-2'}`}
+                  >
+                    {avatar}
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Selected Tutor Preview */}
           {studentData.tutorName && studentData.tutorAvatar && (
-            <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl mb-6">
+            <div className="text-center p-6 bg-blue-50 rounded-2xl mb-6">
               <div className="text-6xl mb-2 animate-bounce">{studentData.tutorAvatar}</div>
-              <p className="text-lg font-semibold text-gray-900">
-                Ο/Η <span className={theme.accent}>{studentData.tutorName}</span> θα σε βοηθάει!
-              </p>
+              <p className="font-semibold">Ο/Η {studentData.tutorName} είναι έτοιμος/η!</p>
             </div>
           )}
 
-          {/* Navigation */}
           <div className="flex gap-4">
-            <button
-              onClick={handleBack}
-              className="flex-1 py-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              ← Πίσω
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={!canProceed()}
-              className={`flex-1 py-4 bg-gradient-to-r ${theme.buttonGradient} text-white font-semibold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              Συνέχεια →
+            <button onClick={handleBack} className="flex-1 py-4 border-2 border-gray-300 rounded-xl">← Πίσω</button>
+            <button onClick={handleNext} disabled={!canProceed()} className={`flex-1 py-4 bg-gradient-to-r ${theme.buttonGradient} text-white rounded-xl disabled:opacity-50`}>
+              {theme.playful ? 'Πάμε! 🚀' : 'Συνέχεια →'}
             </button>
           </div>
         </div>
@@ -691,76 +613,45 @@ export default function StudentOnboarding() {
   if (step === 'subjects') {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${theme.gradient} flex items-center justify-center p-4`}>
-        <div className={`${theme.cardBg} rounded-3xl p-8 md:p-12 w-full max-w-3xl shadow-2xl`}>
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <Image src="/logo.svg" alt="Noetium" width={180} height={48} className="h-12 w-auto" />
-          </div>
-
-          {/* Progress */}
+        <div className="bg-white rounded-3xl p-8 md:p-12 w-full max-w-3xl shadow-2xl">
           <div className="mb-8">
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className={`h-full bg-gradient-to-r ${theme.buttonGradient} transition-all duration-500`}
-                style={{ width: `${progress}%` }}
-              />
+              <div className={`h-full bg-gradient-to-r ${theme.buttonGradient}`} style={{ width: `${progress}%` }} />
             </div>
             <p className="text-center text-sm text-gray-500 mt-2">Βήμα 3 από 4</p>
           </div>
 
-          {/* Header */}
           <div className="text-center mb-8">
-            <h1 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-2`}>
-              {theme.playful ? '📚 ' : ''}Ποια μαθήματα σου αρέσουν;{theme.playful ? ' 📚' : ''}
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {theme.playful ? '📚 Ποια μαθήματα σου αρέσουν;' : 'Αγαπημένα μαθήματα'}
             </h1>
-            <p className="text-gray-600">
-              Μαθήματα για {ALL_GRADES.find(g => g.id === studentData.grade)?.name}
-            </p>
+            <p className="text-gray-600">Μαθήματα για {gradeName}</p>
           </div>
 
-          {/* Subjects Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
+          <div className={`grid ${theme.playful ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'} gap-3 mb-6`}>
             {availableSubjects.map((subject) => {
               const isSelected = studentData.favoriteSubjects.includes(subject.id);
               return (
                 <button
                   key={subject.id}
                   onClick={() => toggleSubject(subject.id)}
-                  className={`p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
-                    isSelected
-                      ? `border-transparent bg-gradient-to-br ${theme.buttonGradient} text-white shadow-lg`
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    isSelected ? `border-transparent bg-gradient-to-br ${theme.buttonGradient} text-white shadow-lg` : 'border-gray-200 bg-white'
                   }`}
                 >
-                  <div className={`text-3xl mb-2 ${isSelected && theme.playful ? 'animate-bounce' : ''}`}>
-                    {subject.icon}
-                  </div>
-                  <div className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-700'}`}>
-                    {subject.name}
-                  </div>
+                  <div className={`${theme.iconSize} mb-2`}>{subject.icon}</div>
+                  <div className={`${theme.playful ? 'text-base' : 'text-sm'} font-medium`}>{subject.name}</div>
                 </button>
               );
             })}
           </div>
 
-          <p className="text-center text-sm text-gray-500 mb-6">
-            {studentData.favoriteSubjects.length} επιλεγμένα (τουλάχιστον 1)
-          </p>
+          <p className="text-center text-sm text-gray-500 mb-6">{studentData.favoriteSubjects.length} επιλεγμένα (τουλάχιστον 1)</p>
 
-          {/* Navigation */}
           <div className="flex gap-4">
-            <button
-              onClick={handleBack}
-              className="flex-1 py-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              ← Πίσω
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={!canProceed()}
-              className={`flex-1 py-4 bg-gradient-to-r ${theme.buttonGradient} text-white font-semibold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              Συνέχεια →
+            <button onClick={handleBack} className="flex-1 py-4 border-2 border-gray-300 rounded-xl">← Πίσω</button>
+            <button onClick={handleNext} disabled={!canProceed()} className={`flex-1 py-4 bg-gradient-to-r ${theme.buttonGradient} text-white rounded-xl disabled:opacity-50`}>
+              {theme.playful ? 'Πάμε! 🚀' : 'Συνέχεια →'}
             </button>
           </div>
         </div>
@@ -772,92 +663,44 @@ export default function StudentOnboarding() {
   if (step === 'hobbies') {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${theme.gradient} flex items-center justify-center p-4`}>
-        <div className={`${theme.cardBg} rounded-3xl p-8 md:p-12 w-full max-w-3xl shadow-2xl`}>
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <Image src="/logo.svg" alt="Noetium" width={180} height={48} className="h-12 w-auto" />
-          </div>
-
-          {/* Progress */}
+        <div className="bg-white rounded-3xl p-8 md:p-12 w-full max-w-3xl shadow-2xl">
           <div className="mb-8">
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className={`h-full bg-gradient-to-r ${theme.buttonGradient} transition-all duration-500`}
-                style={{ width: `${progress}%` }}
-              />
+              <div className={`h-full bg-gradient-to-r ${theme.buttonGradient}`} style={{ width: `${progress}%` }} />
             </div>
             <p className="text-center text-sm text-gray-500 mt-2">Βήμα 4 από 4</p>
           </div>
 
-          {/* Header */}
           <div className="text-center mb-8">
-            <h1 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-2`}>
-              {theme.playful ? '🎯 ' : ''}Τι σου αρέσει να κάνεις;{theme.playful ? ' 🎯' : ''}
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {theme.playful ? '🎯 Τι σου αρέσει να κάνεις;' : 'Ενδιαφέροντα (προαιρετικό)'}
             </h1>
-            <p className="text-gray-600">
-              Θα χρησιμοποιήσουμε παραδείγματα από τα ενδιαφέροντά σου! (προαιρετικό)
-            </p>
           </div>
 
-          {/* Hobbies Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
+          <div className={`grid ${theme.playful ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'} gap-3 mb-6`}>
             {HOBBIES.map((hobby) => {
               const isSelected = studentData.hobbies.includes(hobby.id);
               return (
                 <button
                   key={hobby.id}
                   onClick={() => toggleHobby(hobby.id)}
-                  className={`p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
-                    isSelected
-                      ? `border-transparent bg-gradient-to-br ${theme.buttonGradient} text-white shadow-lg`
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    isSelected ? `border-transparent bg-gradient-to-br ${theme.buttonGradient} text-white shadow-lg` : 'border-gray-200 bg-white'
                   }`}
                 >
-                  <div className={`text-3xl mb-2 ${isSelected && theme.playful ? 'animate-bounce' : ''}`}>
-                    {hobby.icon}
-                  </div>
-                  <div className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-700'}`}>
-                    {hobby.name}
-                  </div>
+                  <div className={`${theme.iconSize} mb-2`}>{hobby.icon}</div>
+                  <div className="text-sm font-medium">{hobby.name}</div>
                 </button>
               );
             })}
           </div>
 
-          {studentData.hobbies.length > 0 && (
-            <p className="text-center text-sm text-gray-500 mb-6">
-              {studentData.hobbies.length} επιλεγμένα
-            </p>
-          )}
+          {error && <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-xl">{error}</div>}
 
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Navigation */}
           <div className="flex gap-4">
-            <button
-              onClick={handleBack}
-              disabled={loading}
-              className="flex-1 py-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              ← Πίσω
-            </button>
-            <button
-              onClick={handleComplete}
-              disabled={loading}
-              className={`flex-1 py-4 bg-gradient-to-r ${theme.buttonGradient} text-white font-semibold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2`}
-            >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Περίμενε...
-                </>
-              ) : (
-                <>Ολοκλήρωση! {theme.playful ? '🎉' : '✓'}</>
-              )}
+            <button onClick={handleBack} disabled={loading} className="flex-1 py-4 border-2 border-gray-300 rounded-xl disabled:opacity-50">← Πίσω</button>
+            <button onClick={handleComplete} disabled={loading} className={`flex-1 py-4 bg-gradient-to-r ${theme.buttonGradient} text-white rounded-xl disabled:opacity-50`}>
+              {loading ? 'Περίμενε...' : theme.playful ? 'Τέλειο! 🎉' : 'Ολοκλήρωση ✓'}
             </button>
           </div>
         </div>
@@ -865,44 +708,16 @@ export default function StudentOnboarding() {
     );
   }
 
-  // ==================== STEP 5: COMPLETE ====================
+  // ==================== COMPLETE ====================
   if (step === 'complete') {
-    setTimeout(() => {
-      router.push('/student');
-    }, 3500);
-
+    setTimeout(() => router.push('/student'), 2500);
     return (
       <div className={`min-h-screen bg-gradient-to-br ${theme.gradient} flex items-center justify-center p-4`}>
-        <div className={`${theme.cardBg} rounded-3xl p-8 md:p-12 w-full max-w-2xl shadow-2xl text-center`}>
-          {/* Success Animation */}
-          <div className={`text-8xl mb-6 ${theme.playful ? 'animate-bounce' : 'animate-pulse'}`}>
-            {studentData.tutorAvatar}
-          </div>
-          
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            {theme.playful ? '🎊 ' : ''}Είμαστε έτοιμοι, {studentData.firstName}!{theme.playful ? ' 🎊' : ''}
-          </h1>
-          
-          <p className="text-xl text-gray-600 mb-8">
-            Ο/Η <span className={`font-bold ${theme.accent}`}>{studentData.tutorName}</span> σε περιμένει!
-          </p>
-
-          <div className="space-y-3 text-left bg-gray-50 rounded-2xl p-6 mb-8">
-            <div className="flex items-center gap-3 text-gray-700">
-              <div className={`w-6 h-6 border-2 ${theme.accent.replace('text', 'border')} border-t-transparent rounded-full animate-spin`}></div>
-              <span>Φορτώνουμε τα βιβλία για {ALL_GRADES.find(g => g.id === studentData.grade)?.name}...</span>
-            </div>
-            <div className="flex items-center gap-3 text-gray-700">
-              <div className={`w-6 h-6 border-2 ${theme.accent.replace('text', 'border')} border-t-transparent rounded-full animate-spin`} style={{ animationDelay: '0.2s' }}></div>
-              <span>Προετοιμάζουμε {studentData.favoriteSubjects.length} μαθήματα...</span>
-            </div>
-            <div className="flex items-center gap-3 text-gray-700">
-              <div className={`w-6 h-6 border-2 ${theme.accent.replace('text', 'border')} border-t-transparent rounded-full animate-spin`} style={{ animationDelay: '0.4s' }}></div>
-              <span>Ρυθμίζουμε τον/την {studentData.tutorName}...</span>
-            </div>
-          </div>
-
-          <div className={`w-16 h-16 border-4 ${theme.accent.replace('text', 'border')} border-t-transparent rounded-full animate-spin mx-auto`}></div>
+        <div className="bg-white rounded-3xl p-12 w-full max-w-2xl shadow-2xl text-center">
+          <div className="text-8xl mb-6 animate-bounce">{studentData.tutorAvatar}</div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">🎊 Μπράβο, {studentData.firstName}!</h1>
+          <p className="text-xl text-gray-600 mb-8">Ο/Η {studentData.tutorName} σε περιμένει!</p>
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
     );
