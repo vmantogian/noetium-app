@@ -16,10 +16,10 @@ export default function LandingPage() {
   const [currentFollowUp, setCurrentFollowUp] = useState('');
   const [questionsUsed, setQuestionsUsed] = useState(0);
   const chatRef = useRef<HTMLDivElement>(null);
-  const MAX_QUESTIONS = 3;
+  const MAX_QUESTIONS = 7;
 
   const studentFeatures = [
-    { icon: '🧠', title: 'AI Tutor 24/7', description: 'Ρώτα ό,τι θέλεις, όποτε θέλεις. Το Noetium σε καθοδηγεί να βρεις τις απαντήσεις μόνος σου.', bg: 'bg-[#E8F4FF]' },
+    { icon: '🧠', title: 'AI Tutor 24/7', description: 'Ρώτα ό,τι θέλεις, όποτε θέλεις. Το noetium σε καθοδηγεί να βρεις τις απαντήσεις μόνος σου.', bg: 'bg-[#E8F4FF]' },
     { icon: '📊', title: 'Προσαρμοσμένο πρόγραμμα ανά μάθημα', description: 'Εντοπίζει τα κενά στις γνώσεις σου και προσαρμόζει το υλικό στις ανάγκες σου.', bg: 'bg-[#E8F4FF]' },
     { icon: '🎯', title: 'Ασκήσεις με feedback', description: 'Λύσε ασκήσεις και πάρε άμεση ανατροφοδότηση για να βελτιώνεσαι συνεχώς.', bg: 'bg-[#E8F4FF]' },
     { icon: '🚀', title: 'Μάθε κι εκτός σχολείου', description: 'Φιλοσοφικές συζητήσεις (debate), προγραμματισμός (coding), επιχειρηματικότητα και άλλα.', bg: 'bg-[#E8F4FF]' },
@@ -51,83 +51,124 @@ export default function LandingPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // ========== EXPANDED DEMO RESPONSES (covers 7+ topics) ==========
   const demoResponses: Record<string, { text: string; source: string; followUp: string }> = {
     'Εξήγησέ μου τη φωτοσύνθεση': {
-      text: 'Η φωτοσύνθεση είναι η διαδικασία με την οποία τα φυτά μετατρέπουν το φως του ήλιου σε τροφή. Χρησιμοποιούν διοξείδιο του άνθρακα (CO₂) και νερό (H₂O), και με τη βοήθεια της χλωροφύλλης παράγουν γλυκόζη και οξυγόνο.',
+      text: 'Η φωτοσύνθεση είναι η διαδικασία με την οποία τα φυτά μετατρέπουν το φως του ήλιου σε τροφή. Χρησιμοποιούν διοξείδιο του άνθρακα (CO₂) και νερό (H₂O), και με τη βοήθεια της χλωροφύλλης παράγουν γλυκόζη και οξυγόνο.\n\nΣκέψου το σαν μια "κουζίνα" του φυτού — τα υλικά είναι νερό + ήλιος + CO₂ και το αποτέλεσμα είναι τροφή + οξυγόνο.',
       source: '📖 Βιολογία Α\' Γυμνασίου, Κεφ. 2',
-      followUp: '💡 Θέλεις να σου δημιουργήσω μια εικόνα που δείχνει τη διαδικασία της φωτοσύνθεσης;',
+      followUp: '💡 Θέλεις να σου δημιουργήσω μια εικόνα που δείχνει τη διαδικασία;',
     },
     'Τι είναι το Πυθαγόρειο θεώρημα;': {
-      text: 'Το Πυθαγόρειο θεώρημα λέει ότι σε ένα ορθογώνιο τρίγωνο, το τετράγωνο της υποτείνουσας ισούται με το άθροισμα των τετραγώνων των κάθετων πλευρών: α² + β² = γ². Για παράδειγμα, αν οι κάθετες είναι 3 και 4, η υποτείνουσα είναι 5.',
+      text: 'Το Πυθαγόρειο θεώρημα λέει ότι σε ένα ορθογώνιο τρίγωνο, το τετράγωνο της υποτείνουσας ισούται με το άθροισμα των τετραγώνων των κάθετων πλευρών:\n\nα² + β² = γ²\n\nΓια παράδειγμα, αν οι κάθετες πλευρές είναι 3 και 4, η υποτείνουσα είναι 5, γιατί 9 + 16 = 25.',
       source: '📖 Μαθηματικά Β\' Γυμνασίου, Κεφ. 5',
-      followUp: '💡 Θέλεις να λύσουμε μαζί μια άσκηση με το Πυθαγόρειο θεώρημα;',
+      followUp: '💡 Θέλεις να λύσουμε μαζί μια άσκηση βήμα-βήμα;',
     },
     'Γιατί έγινε η Επανάσταση του 1821;': {
-      text: 'Η Ελληνική Επανάσταση ξέσπασε λόγω της επιθυμίας των Ελλήνων για ελευθερία μετά από 400 χρόνια Οθωμανικής κυριαρχίας. Σημαντικοί παράγοντες ήταν η διατήρηση της γλώσσας και θρησκείας, η επίδραση του Διαφωτισμού, και η Φιλική Εταιρεία.',
+      text: 'Η Ελληνική Επανάσταση ξέσπασε λόγω πολλών παραγόντων. Οι Έλληνες ήθελαν ελευθερία μετά από 400 χρόνια Οθωμανικής κυριαρχίας. Ας τους δούμε:\n\n• Διατήρηση της γλώσσας και θρησκείας μέσω του κρυφού σχολειού\n• Η επίδραση του Διαφωτισμού και της Γαλλικής Επανάστασης\n• Η Φιλική Εταιρεία που οργάνωσε το κίνημα\n\nΠοιον από αυτούς τους παράγοντες θεωρείς πιο σημαντικό;',
       source: '📖 Ιστορία Γ\' Γυμνασίου, Κεφ. 1',
-      followUp: '💡 Θέλεις να μάθεις για τον ρόλο της Φιλικής Εταιρείας και πώς οργανώθηκε η Επανάσταση;',
+      followUp: '💡 Ρώτα με για τον ρόλο της Φιλικής Εταιρείας!',
     },
   };
 
-  useEffect(() => {
-    if (isTyping && displayedText) {
-      const words = displayedText.split(' ');
-      let currentIndex = 0;
-      
-      const interval = setInterval(() => {
-        if (currentIndex < words.length) {
-          setChatMessages(prev => {
-            const newMessages = [...prev];
-            const lastMsg = newMessages[newMessages.length - 1];
-            if (lastMsg && lastMsg.role === 'ai') {
-              lastMsg.text = words.slice(0, currentIndex + 1).join(' ');
-            }
-            return newMessages;
-          });
-          currentIndex++;
-          
-          if (chatRef.current) {
-            chatRef.current.scrollTop = chatRef.current.scrollHeight;
-          }
-        } else {
-          clearInterval(interval);
-          setTimeout(() => {
-            setChatMessages(prev => {
-              const newMessages = [...prev];
-              const lastMsg = newMessages[newMessages.length - 1];
-              if (lastMsg && lastMsg.role === 'ai') {
-                lastMsg.source = currentSource;
-                lastMsg.followUp = currentFollowUp;
-              }
-              return newMessages;
-            });
-            setIsTyping(false);
-            setDisplayedText('');
-            setCurrentSource('');
-            setCurrentFollowUp('');
-          }, 300);
-        }
-      }, 80);
+  // Responses to follow-up / free-form questions
+  const fallbackResponses = [
+    {
+      text: 'Ωραία ερώτηση! Ας τη σκεφτούμε μαζί. Μπορείς να μου πεις τι ξέρεις ήδη για αυτό το θέμα; Έτσι θα ξέρω από πού να ξεκινήσουμε.',
+      source: '📖 500,000+ σελίδες από σχολικά βιβλία',
+      followUp: '💡 Δοκίμασε να μου δώσεις περισσότερες λεπτομέρειες!',
+    },
+    {
+      text: 'Αυτό είναι ενδιαφέρον θέμα! Στο πλήρες noetium, μπορώ να ψάξω στα σχολικά βιβλία και να σου εξηγήσω με εικόνες και διαγράμματα. Θέλεις να δοκιμάσεις κάτι πιο συγκεκριμένο;',
+      source: '📖 Αναζήτηση σε ελληνικά σχολικά βιβλία',
+      followUp: '💡 Δοκίμασε: "Τι είναι το κύτταρο;" ή "Εξήγησέ μου τους νόμους του Νεύτωνα"',
+    },
+    {
+      text: 'Καλή ερώτηση! Στο πλήρες noetium, θα σε καθοδηγούσα βήμα-βήμα στην απάντηση αντί να στη δίνω έτοιμη. Αυτή η Σωκρατική μέθοδος σε βοηθά να κατανοήσεις πραγματικά.\n\nΔημιούργησε δωρεάν λογαριασμό για πλήρη πρόσβαση!',
+      source: '📖 Σωκρατική μέθοδος + AI',
+      followUp: '💡 Η Σωκρατική μέθοδος αυξάνει την κατανόηση κατά 40%!',
+    },
+    {
+      text: 'Μπράβο που ρωτάς! Αυτό δείχνει περιέργεια — το πιο σημαντικό εργαλείο μάθησης. Στο πλήρες noetium μπορώ να:\n\n• Εξηγήσω με εικόνες και διαγράμματα\n• Δώσω ασκήσεις στο επίπεδό σου\n• Ελέγξω φωτογραφίες από ασκήσεις σου\n\nΘέλεις να δοκιμάσεις;',
+      source: '📖 noetium AI platform',
+      followUp: '💡 Δημιούργησε δωρεάν λογαριασμό για πλήρη πρόσβαση!',
+    },
+  ];
 
-      return () => clearInterval(interval);
-    }
+  let fallbackIndex = 0;
+
+  // ========== WORD-BY-WORD TYPING EFFECT ==========
+  useEffect(() => {
+    if (!isTyping || !displayedText) return;
+
+    const words = displayedText.split(' ');
+    let currentIndex = 0;
+
+    const interval = setInterval(() => {
+      if (currentIndex < words.length) {
+        currentIndex++;
+        setChatMessages(prev => {
+          const updated = [...prev];
+          const lastMsg = updated[updated.length - 1];
+          if (lastMsg?.role === 'ai') {
+            lastMsg.text = words.slice(0, currentIndex).join(' ');
+          }
+          return updated;
+        });
+
+        if (chatRef.current) {
+          chatRef.current.scrollTop = chatRef.current.scrollHeight;
+        }
+      } else {
+        clearInterval(interval);
+        setTimeout(() => {
+          setChatMessages(prev => {
+            const updated = [...prev];
+            const lastMsg = updated[updated.length - 1];
+            if (lastMsg?.role === 'ai') {
+              lastMsg.source = currentSource;
+              lastMsg.followUp = currentFollowUp;
+            }
+            return updated;
+          });
+          setIsTyping(false);
+          setDisplayedText('');
+          setCurrentSource('');
+          setCurrentFollowUp('');
+        }, 200);
+      }
+    }, 60); // Slightly faster for smoother feel
+
+    return () => clearInterval(interval);
   }, [isTyping, displayedText, currentSource, currentFollowUp]);
 
   const handleSendMessage = async (message: string) => {
     if (questionsUsed >= MAX_QUESTIONS || !message.trim() || isTyping) return;
-    
+
     setChatMessages(prev => [...prev, { role: 'user', text: message }]);
     setChatInput('');
     setQuestionsUsed(prev => prev + 1);
 
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const response = demoResponses[message] || {
-      text: 'Ευχαριστώ για την ερώτηση! Δημιούργησε έναν δωρεάν λογαριασμό για να απαντήσω σε οποιαδήποτε ερώτηση έχεις από τα σχολικά βιβλία. Μπορώ επίσης να δημιουργήσω εικόνες, να σου εξηγήσω έννοιες βήμα-βήμα, και να σε βοηθήσω με ασκήσεις!',
-      source: '📖 500,000+ σελίδες από σχολικά βιβλία',
-      followUp: '💡 Δοκίμασε να ρωτήσεις για τη φωτοσύνθεση, το Πυθαγόρειο θεώρημα, ή την Επανάσταση του 1821!',
-    };
-    
+    await new Promise(resolve => setTimeout(resolve, 400));
+
+    // Check for exact match first, then use cycling fallbacks
+    let response = demoResponses[message];
+
+    if (!response) {
+      // Check partial matches
+      const lowerMsg = message.toLowerCase();
+      if (lowerMsg.includes('φωτοσύνθεση') || lowerMsg.includes('φυτά') || lowerMsg.includes('βιολογ')) {
+        response = demoResponses['Εξήγησέ μου τη φωτοσύνθεση'];
+      } else if (lowerMsg.includes('πυθαγόρ') || lowerMsg.includes('τρίγωνο') || lowerMsg.includes('υποτείνουσα')) {
+        response = demoResponses['Τι είναι το Πυθαγόρειο θεώρημα;'];
+      } else if (lowerMsg.includes('1821') || lowerMsg.includes('επανάσταση') || lowerMsg.includes('φιλική')) {
+        response = demoResponses['Γιατί έγινε η Επανάσταση του 1821;'];
+      } else {
+        // Cycle through fallback responses
+        response = fallbackResponses[fallbackIndex % fallbackResponses.length];
+        fallbackIndex++;
+      }
+    }
+
     setChatMessages(prev => [...prev, { role: 'ai', text: '' }]);
     setDisplayedText(response.text);
     setCurrentSource(response.source);
@@ -194,7 +235,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ========== HERO + DEMO - REDUCED PADDING ========== */}
+      {/* ========== HERO + DEMO ========== */}
       <section className="relative pt-28 pb-8 overflow-hidden">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-20 left-10 w-72 h-72 bg-[#E8F4FF] rounded-full blur-3xl opacity-60"></div>
@@ -231,9 +272,10 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Demo Chat */}
+            {/* ========== DEMO CHAT — 7 questions ========== */}
             <div className="relative">
               <div className="bg-white rounded-3xl shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                {/* Chat header */}
                 <div className="bg-gradient-to-r from-[#2A50DF] to-[#25A1B0] px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center p-1.5">
@@ -241,11 +283,14 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <h3 className="text-white font-semibold">noetium AI Tutor</h3>
-                      <p className="text-white/90 text-sm">Δοκίμασέ το τώρα • {MAX_QUESTIONS - questionsUsed} ερωτήσεις δωρεάν</p>
+                      <p className="text-white/90 text-sm">
+                        Δοκίμασέ το τώρα • {MAX_QUESTIONS - questionsUsed} ερωτήσεις ακόμα
+                      </p>
                     </div>
                   </div>
                 </div>
 
+                {/* Chat body */}
                 <div ref={chatRef} className="h-80 p-4 bg-gradient-to-b from-gray-50/50 to-white overflow-y-auto">
                   {chatMessages.length === 0 ? (
                     <div className="text-center py-4">
@@ -256,7 +301,7 @@ export default function LandingPage() {
                           <button 
                             key={q}
                             onClick={() => handleSendMessage(q)}
-                            disabled={questionsUsed >= MAX_QUESTIONS || isTyping}
+                            disabled={isTyping}
                             className="px-3 py-1.5 bg-white border border-gray-300 rounded-full text-sm text-gray-700 hover:border-[#2A50DF] hover:text-[#2A50DF] transition-all hover:shadow-md disabled:opacity-50"
                           >
                             {q.includes('φωτοσύνθεση') ? '🌱' : q.includes('Πυθαγόρειο') ? '📐' : '📚'} {q}
@@ -271,7 +316,12 @@ export default function LandingPage() {
                           <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-[#2A50DF] text-white rounded-2xl rounded-br-md px-4 py-2' : ''}`}>
                             {msg.role === 'ai' ? (
                               <div className="bg-white border border-gray-200 shadow-sm rounded-2xl rounded-bl-md px-4 py-2">
-                                <p className="text-gray-800 whitespace-pre-line text-sm">{msg.text}{isTyping && i === chatMessages.length - 1 && <span className="animate-pulse">▋</span>}</p>
+                                <p className="text-gray-800 whitespace-pre-line text-sm">
+                                  {msg.text}
+                                  {isTyping && i === chatMessages.length - 1 && (
+                                    <span className="inline-block w-1.5 h-4 bg-[#2A50DF] ml-0.5 animate-pulse rounded-sm" />
+                                  )}
+                                </p>
                                 {msg.source && (
                                   <p className="text-xs text-[#25A1B0] mt-2 font-medium">{msg.source}</p>
                                 )}
@@ -289,26 +339,39 @@ export default function LandingPage() {
                   )}
                 </div>
 
+                {/* Chat input */}
                 <div className="p-3 border-t border-gray-100">
                   {questionsUsed < MAX_QUESTIONS ? (
-                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(chatInput); }} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        placeholder="Γράψε την ερώτησή σου..."
-                        disabled={isTyping}
-                        className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#2A50DF] focus:ring-2 focus:ring-[#2A50DF]/20 text-gray-800 disabled:opacity-50 text-sm"
-                      />
-                      <button type="submit" disabled={!chatInput.trim() || isTyping} className="px-5 py-2 bg-[#2A50DF] hover:bg-[#1E3DB8] text-white font-semibold rounded-xl transition-all hover:shadow-lg disabled:opacity-50 text-sm">
-                        Στείλε
-                      </button>
-                    </form>
+                    <div>
+                      <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(chatInput); }} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          placeholder="Γράψε την ερώτησή σου..."
+                          disabled={isTyping}
+                          className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#2A50DF] focus:ring-2 focus:ring-[#2A50DF]/20 text-gray-800 disabled:opacity-50 text-sm"
+                        />
+                        <button type="submit" disabled={!chatInput.trim() || isTyping} className="px-5 py-2 bg-[#2A50DF] hover:bg-[#1E3DB8] text-white font-semibold rounded-xl transition-all hover:shadow-lg disabled:opacity-50 text-sm">
+                          Στείλε
+                        </button>
+                      </form>
+                      {/* Inline suggestion chips after first message */}
+                      {chatMessages.length > 0 && chatMessages.length < 6 && !isTyping && (
+                        <div className="flex gap-1.5 mt-2 overflow-x-auto">
+                          {['Τι είναι το κύτταρο;', 'Νόμοι του Νεύτωνα', 'Πώς λύνω εξισώσεις;'].filter(q => !chatMessages.some(m => m.text === q)).slice(0, 2).map(q => (
+                            <button key={q} onClick={() => handleSendMessage(q)} className="flex-shrink-0 px-2.5 py-1 border border-gray-200 rounded-full text-xs text-gray-600 hover:border-[#2A50DF] hover:text-[#2A50DF] transition-all">
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <div className="text-center py-1">
-                      <p className="text-gray-700 mb-2 text-sm">Σου άρεσε; Συνέχισε δωρεάν!</p>
-                      <Link href="/signup" className="inline-block px-5 py-2 bg-gradient-to-r from-[#D9325C] to-[#2A50DF] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-sm">
-                        Δημιούργησε δωρεάν λογαριασμό
+                    <div className="text-center py-2">
+                      <p className="text-gray-700 mb-2 text-sm font-medium">Σου άρεσε; Συνέχισε δωρεάν — χωρίς όριο ερωτήσεων!</p>
+                      <Link href="/signup" className="inline-block px-5 py-2.5 bg-gradient-to-r from-[#D9325C] to-[#2A50DF] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-sm">
+                        Δημιούργησε δωρεάν λογαριασμό →
                       </Link>
                     </div>
                   )}
@@ -321,7 +384,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========== AUDIENCE TABS - REDUCED PADDING ========== */}
+      {/* ========== AUDIENCE TABS ========== */}
       <section id="audiences" className="py-12 bg-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-8">
@@ -360,7 +423,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========== HOW IT WORKS - REDUCED PADDING ========== */}
+      {/* ========== HOW IT WORKS ========== */}
       <section id="how-it-works" className="py-12 bg-gradient-to-b from-[#F0F4F8] to-white overflow-hidden scroll-mt-20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-10">
@@ -390,7 +453,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========== WHY NOETIUM - REDUCED PADDING ========== */}
+      {/* ========== WHY NOETIUM ========== */}
       <section id="why-noetium" className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-10">
@@ -423,7 +486,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========== CTA - REDUCED PADDING ========== */}
+      {/* ========== CTA ========== */}
       <section className="py-16 bg-gradient-to-r from-[#2A50DF] to-[#25A1B0]">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-semibold text-3xl sm:text-4xl text-white mb-4">Έτοιμος να ξεκινήσεις;</h2>
@@ -432,7 +495,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========== FOOTER - REDUCED PADDING ========== */}
+      {/* ========== FOOTER ========== */}
       <footer className="bg-[#191308] text-white py-12">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
