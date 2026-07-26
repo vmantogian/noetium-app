@@ -17,6 +17,30 @@ import { NextRequest, NextResponse } from 'next/server';
  * classic "login succeeds, then bounces back to /login" loop.
  * Always derive the public origin from the forwarded headers.
  */
+/**
+ * Apple's "Hide My Email" returns an opaque relay address such as
+ * x7h3k9m2p1@privaterelay.appleid.com, and Apple only sends the real name on
+ * the FIRST authorisation - never again. Using the email local part as a
+ * display name would permanently label those users with a random string.
+ */
+function deriveDisplayName(user: {
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+}): string {
+  const meta = (user.user_metadata ?? {}) as Record<string, string | undefined>;
+  const fromMeta =
+    meta.full_name ||
+    meta.name ||
+    [meta.given_name, meta.family_name].filter(Boolean).join(' ').trim();
+  if (fromMeta) return fromMeta;
+
+  const email = user.email ?? '';
+  if (email && !email.endsWith('@privaterelay.appleid.com')) {
+    return email.split('@')[0];
+  }
+  return 'User';
+}
+
 function getOrigin(request: NextRequest): string {
   const forwardedHost = request.headers.get('x-forwarded-host');
   const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https';
@@ -78,7 +102,7 @@ export async function GET(request: NextRequest) {
             .insert({
               user_id: user.id,
               email: user.email,
-              name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+              name: deriveDisplayName(user),
               user_type: userRole,
               onboarding_completed: false,
               created_at: new Date().toISOString(),
