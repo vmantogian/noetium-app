@@ -14,6 +14,8 @@ interface Tool {
   href: string;
   category: string[];
   isNew?: boolean;
+  /** Required, not optional: a tool added without a built page must not become a dead link. */
+  status: 'ready' | 'coming-soon';
 }
 
 const tools: Tool[] = [
@@ -27,6 +29,7 @@ const tools: Tool[] = [
     color: 'bg-purple-100',
     href: '/teacher/tools/lesson-plan',
     category: ['plan'],
+    status: 'ready',
   },
   {
     id: 'lesson-hook',
@@ -37,6 +40,7 @@ const tools: Tool[] = [
     color: 'bg-indigo-100',
     href: '/teacher/tools/lesson-hook',
     category: ['plan'],
+    status: 'coming-soon',
   },
   {
     id: 'learning-objectives',
@@ -47,6 +51,7 @@ const tools: Tool[] = [
     color: 'bg-blue-100',
     href: '/teacher/tools/learning-objectives',
     category: ['plan'],
+    status: 'coming-soon',
   },
   // Create
   {
@@ -59,6 +64,7 @@ const tools: Tool[] = [
     href: '/teacher/tools/exercise-generator',
     category: ['create'],
     isNew: true,
+    status: 'ready',
   },
   {
     id: 'quiz-creator',
@@ -69,6 +75,7 @@ const tools: Tool[] = [
     color: 'bg-emerald-100',
     href: '/teacher/tools/quiz-creator',
     category: ['create'],
+    status: 'coming-soon',
   },
   {
     id: 'questions-generator',
@@ -79,6 +86,7 @@ const tools: Tool[] = [
     color: 'bg-teal-100',
     href: '/teacher/tools/questions-generator',
     category: ['create'],
+    status: 'coming-soon',
   },
   {
     id: 'informational-text',
@@ -89,6 +97,7 @@ const tools: Tool[] = [
     color: 'bg-lime-100',
     href: '/teacher/tools/informational-text',
     category: ['create'],
+    status: 'coming-soon',
   },
   // Differentiate
   {
@@ -100,6 +109,7 @@ const tools: Tool[] = [
     color: 'bg-rose-100',
     href: '/teacher/tools/leveler',
     category: ['differentiate'],
+    status: 'ready',
   },
   {
     id: 'alternative-explanations',
@@ -111,6 +121,7 @@ const tools: Tool[] = [
     href: '/teacher/tools/alternative-explanations',
     category: ['differentiate'],
     isNew: true,
+    status: 'coming-soon',
   },
   {
     id: 'chunk-text',
@@ -121,6 +132,7 @@ const tools: Tool[] = [
     color: 'bg-orange-100',
     href: '/teacher/tools/chunk-text',
     category: ['differentiate'],
+    status: 'coming-soon',
   },
   // Grade & Assess
   {
@@ -133,6 +145,7 @@ const tools: Tool[] = [
     href: '/teacher/tools/photo-grader',
     category: ['assess'],
     isNew: true,
+    status: 'ready',
   },
   {
     id: 'rubric-generator',
@@ -143,6 +156,7 @@ const tools: Tool[] = [
     color: 'bg-fuchsia-100',
     href: '/teacher/tools/rubric-generator',
     category: ['assess'],
+    status: 'coming-soon',
   },
   {
     id: 'report-comments',
@@ -153,6 +167,7 @@ const tools: Tool[] = [
     color: 'bg-violet-100',
     href: '/teacher/tools/report-comments',
     category: ['assess'],
+    status: 'coming-soon',
   },
   // Support
   {
@@ -164,6 +179,7 @@ const tools: Tool[] = [
     color: 'bg-cyan-100',
     href: '/teacher/tools/clear-directions',
     category: ['support'],
+    status: 'coming-soon',
   },
   {
     id: 'parent-newsletter',
@@ -174,6 +190,7 @@ const tools: Tool[] = [
     color: 'bg-sky-100',
     href: '/teacher/tools/parent-newsletter',
     category: ['support'],
+    status: 'coming-soon',
   },
   {
     id: 'recommendation-letter',
@@ -184,6 +201,7 @@ const tools: Tool[] = [
     color: 'bg-slate-100',
     href: '/teacher/tools/recommendation-letter',
     category: ['support'],
+    status: 'coming-soon',
   },
   // Students
   {
@@ -195,6 +213,7 @@ const tools: Tool[] = [
     color: 'bg-yellow-100',
     href: '/teacher/students',
     category: ['students'],
+    status: 'ready',
   },
   {
     id: 'class-snapshot',
@@ -205,6 +224,7 @@ const tools: Tool[] = [
     color: 'bg-red-100',
     href: '/teacher/class-snapshot',
     category: ['students'],
+    status: 'coming-soon',
   },
 ];
 
@@ -251,12 +271,13 @@ export default function TeacherDashboard() {
                 <span>👥</span>
                 <span className="hidden sm:inline">Οι Μαθητές μου</span>
               </Link>
-              <Link
-                href="/teacher/profile"
+              {/* Not a link: /teacher/profile has no page, and /profile is student-specific. */}
+              <div
+                aria-hidden="true"
                 className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-medium"
               >
                 Ε
-              </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -317,37 +338,63 @@ export default function TeacherDashboard() {
 
         {/* Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTools.map((tool, index) => (
-            <motion.div
-              key={tool.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Link href={tool.href}>
-                <div className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg hover:border-purple-200 transition-all cursor-pointer group h-full">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 ${tool.color} rounded-xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform`}>
-                      {tool.icon}
+          {filteredTools.map((tool, index) => {
+            const ready = tool.status === 'ready';
+            // group-hover utilities need an ancestor carrying `group`, so omitting it
+            // leaves the unbuilt cards inert without duplicating the markup.
+            const card = (
+              <div
+                className={`bg-white rounded-xl p-5 border border-gray-100 h-full transition-all ${
+                  ready ? 'hover:shadow-lg hover:border-purple-200 cursor-pointer group' : 'opacity-60'
+                }`}
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`w-12 h-12 ${tool.color} rounded-xl flex items-center justify-center text-2xl transition-transform ${
+                      ready ? 'group-hover:scale-110' : 'opacity-50'
+                    }`}
+                  >
+                    {tool.icon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3
+                        className={`font-semibold transition-colors ${
+                          ready ? 'text-gray-800 group-hover:text-purple-600' : 'text-gray-500'
+                        }`}
+                      >
+                        {tool.name}
+                      </h3>
+                      {ready && tool.isNew && (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                          Νέο
+                        </span>
+                      )}
+                      {!ready && (
+                        <span className="px-2 py-0.5 bg-gray-200 text-gray-500 text-xs font-medium rounded-full">
+                          Σύντομα
+                        </span>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-800 group-hover:text-purple-600 transition-colors">
-                          {tool.name}
-                        </h3>
-                        {tool.isNew && (
-                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                            Νέο
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500 mt-1">{tool.description}</p>
-                    </div>
+                    <p className={`text-sm mt-1 ${ready ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {tool.description}
+                    </p>
                   </div>
                 </div>
-              </Link>
-            </motion.div>
-          ))}
+              </div>
+            );
+
+            return (
+              <motion.div
+                key={tool.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                {ready ? <Link href={tool.href}>{card}</Link> : card}
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* Empty State */}
