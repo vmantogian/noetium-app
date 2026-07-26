@@ -48,7 +48,7 @@ ${originalText}
 Δώσε ΜΟΝΟ το αναπροσαρμοσμένο κείμενο, χωρίς επιπλέον σχόλια ή επεξηγήσεις.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-5',
       max_tokens: 3000,
       messages: [
         { role: 'user', content: userPrompt }

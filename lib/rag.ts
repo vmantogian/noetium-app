@@ -191,7 +191,7 @@ ${ragContext.results.length > 0 ? buildRAGContext(ragContext.results) : ''}`;
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-5',
     max_tokens: 1024,
     system: systemPrompt,
     messages: conversationHistory.concat([{ role: 'user', content: userMessage }]),

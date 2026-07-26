@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import { routeModel, buildCachedSystem } from '@/lib/model-router';
 
 export const dynamic = 'force-dynamic';
 
@@ -517,7 +518,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Build system prompt
-    const systemPrompt = buildSystemPrompt(subject, gradeConfig, ragContext, grade);
+    // RAG context is passed separately so it sits AFTER the cache breakpoint.
+    const systemPrompt = buildSystemPrompt(subject, gradeConfig, '', grade);
 
     // Build messages array
     const messages: Anthropic.MessageParam[] =
@@ -538,10 +540,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Stream response from Claude
+    const selectedModel = routeModel({
+      message,
+      grade,
+      subject,
+      hasMedia: Boolean(hasMedia),
+    });
+
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-20250514',
+      model: selectedModel,
       max_tokens: gradeConfig.maxTokens,
-      system: systemPrompt,
+      system: buildCachedSystem(systemPrompt, ragContext),
       messages,
     });
 
@@ -627,33 +636,6 @@ export async function POST(request: NextRequest) {
                     })}\n\n`
                   )
                 );
-              } else {
-                // STEP 3: Generate with AI
-                const greekLabelTexts = labels.map((l) => l.text);
-                const generated = await generateImage(imagePrompt, greekLabelTexts, gradeConfig.level);
-
-                if (generated) {
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({
-                        type: 'image_with_labels',
-                        imageUrl: generated.url,
-                        labels,
-                        provider: generated.provider,
-                        isTextbook: false,
-                      })}\n\n`
-                    )
-                  );
-                } else {
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({
-                        type: 'image_error',
-                        error: 'Δεν μπόρεσα να δημιουργήσω εικόνα',
-                      })}\n\n`
-                    )
-                  );
-                }
               }
             } catch (imgError) {
               console.error('Image error:', imgError);

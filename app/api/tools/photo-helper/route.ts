@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 Δώσε καθοδήγηση χωρίς να αποκαλύψεις την απάντηση.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-5',
       max_tokens: 1500,
       messages: [
         {
@@ -158,7 +158,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-5',
       max_tokens: 1000,
       messages,
       system: systemPrompt,
