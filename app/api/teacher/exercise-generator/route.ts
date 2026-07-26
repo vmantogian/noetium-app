@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { MATH_LATEX_JSON_RULE, MATH_LATEX_RULES } from '@/lib/math-prompt';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -45,7 +46,10 @@ ${difficultyGuide}
       "hint": "Υπόδειξη (προαιρετικό)"
     }
   ]
-}`;
+}
+
+${MATH_LATEX_RULES}
+${MATH_LATEX_JSON_RULE}`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-5',

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { MATH_LATEX_RULES } from '@/lib/math-prompt';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -37,7 +38,9 @@ ${additionalContext ? `**Πρόσθετες Πληροφορίες:** ${addition
 8. **Διαφοροποίηση** (για μαθητές με διαφορετικές ανάγκες)
 9. **Εργασία για το Σπίτι** (προαιρετικό)
 
-Γράψε σε φυσικό, πρακτικό ύφος που μπορεί να χρησιμοποιήσει άμεσα ένας εκπαιδευτικός.`;
+Γράψε σε φυσικό, πρακτικό ύφος που μπορεί να χρησιμοποιήσει άμεσα ένας εκπαιδευτικός.
+
+${MATH_LATEX_RULES}`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-5',

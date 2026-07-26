@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { MATH_LATEX_JSON_RULE, MATH_LATEX_RULES } from '@/lib/math-prompt'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -50,7 +51,10 @@ ${difficultyInstructions[difficulty as keyof typeof difficultyInstructions]}
 3. correctAnswer είναι το index (0-3) της σωστής απάντησης
 4. Κάθε ερώτηση να έχει μοναδικό id
 5. Οι λάθος επιλογές να είναι λογικές αλλά σαφώς λανθασμένες
-6. Η εξήγηση να είναι σύντομη και κατατοπιστική`
+6. Η εξήγηση να είναι σύντομη και κατατοπιστική
+
+${MATH_LATEX_RULES}
+${MATH_LATEX_JSON_RULE}`
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-5',

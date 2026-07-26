@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { MATH_LATEX_RULES } from '@/lib/math-prompt';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -44,7 +45,9 @@ export async function POST(request: NextRequest) {
 6. Χρησιμοποίησε απλή γλώσσα κατάλληλη για ${gradeLevel === 'dimotiko' ? 'Δημοτικό' : gradeLevel === 'gymnasium' ? 'Γυμνάσιο' : 'Λύκειο'}
 
 Μάθημα: ${subject}
-Απάντησε στα ${language === 'el' ? 'Ελληνικά' : 'Αγγλικά'}.`;
+Απάντησε στα ${language === 'el' ? 'Ελληνικά' : 'Αγγλικά'}.
+
+${MATH_LATEX_RULES}`;
 
     const userPrompt = `Κοίταξε αυτή την άσκηση/πρόβλημα που ανέβασε ο μαθητής.
 
@@ -129,6 +132,8 @@ export async function PUT(request: NextRequest) {
 Ο μαθητής έχει μια επιπλέον ερώτηση για την άσκηση που δουλεύει.
 Συνέχισε να χρησιμοποιείς τη Σωκρατική μέθοδο - μην δίνεις απευθείας απαντήσεις.
 Αν ρωτήσει "ποια είναι η απάντηση", εξήγησέ του ότι είναι καλύτερα να τη βρει μόνος του με τη βοήθειά σου.
+
+${MATH_LATEX_RULES}
 
 Προηγούμενο context: ${context}`;
 

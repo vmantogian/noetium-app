@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { MATH_LATEX_RULES } from '@/lib/math-prompt'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -32,7 +33,8 @@ ${subjectContext}
 4. Δώσε hints και οδηγίες βήμα-βήμα
 5. Ρώτησε τον μαθητή αν κατάλαβε πριν προχωρήσεις
 6. Αν ο μαθητής ζητήσει τη λύση, δώσε την με αναλυτική εξήγηση
-7. Χρησιμοποίησε LaTeX για μαθηματικούς τύπους όπου χρειάζεται
+
+${MATH_LATEX_RULES}
 
 ΣΗΜΑΝΤΙΚΟ: Αν η εικόνα δεν είναι άσκηση ή δεν φαίνεται καθαρά, ζήτησε διευκρινίσεις.
 

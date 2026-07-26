@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { MATH_LATEX_RULES } from '@/lib/math-prompt';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -249,7 +250,15 @@ RULES:
   };
 
   let prompt = modePrompts[mode];
-  
+
+  // Text mode is a faithful transcription, so it must reproduce the page rather
+  // than rewrite it; the explaining modes are the ones that author new formulas.
+  if (mode === 'homework' || mode === 'diagram' || mode === 'general') {
+    prompt += isGreek
+      ? `\n\n${MATH_LATEX_RULES}`
+      : `\n\nThe formula rules below are written in Greek but apply to your maths regardless. Keep your prose in English.\n\n${MATH_LATEX_RULES}`;
+  }
+
   if (subject) {
     const subjectContext = isGreek
       ? `\n\nΜΑΘΗΜΑ: ${subject}. Προσαρμόσε την ανάλυση στο συγκεκριμένο μάθημα.`

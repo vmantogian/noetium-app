@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { routeModel, buildCachedSystem } from '@/lib/model-router';
+import { MATH_LATEX_RULES } from '@/lib/math-prompt';
 
 export const dynamic = 'force-dynamic';
 
@@ -444,6 +445,8 @@ labels:
 ΠΗΓΕΣ:
 - Αν η απάντησή σου βασίζεται σε σχολικό βιβλίο, ανάφερε: "📖 [Όνομα Βιβλίου], [Κεφάλαιο]"
 - Αν είναι γενική γνώση, μην αναφέρεις πηγή
+
+${MATH_LATEX_RULES}
 
 ${ragContext}
 
