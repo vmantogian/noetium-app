@@ -187,27 +187,15 @@ export default function StudentDashboard() {
               <div className="text-7xl mb-3">📸</div>
               <p className="text-2xl font-bold text-white">Βοήθεια με Άσκηση</p>
             </Link>
-
-            <Link
-              href="/mindfulness"
-              className="block bg-gradient-to-r from-green-500 to-teal-500 rounded-3xl p-8 text-center shadow-xl transform hover:scale-105 transition-all active:scale-95"
-            >
-              <div className="text-7xl mb-3">🧘</div>
-              <p className="text-2xl font-bold text-white">Χαλάρωση</p>
-            </Link>
           </div>
 
           {/* Fun Games Section */}
           <div className="bg-white rounded-3xl p-6 shadow-xl">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">🎮 Παιχνίδια</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <Link href="/quiz" className="bg-yellow-100 rounded-2xl p-5 text-center hover:bg-yellow-200 transition-colors active:scale-95 transform">
+            <div className="grid grid-cols-1 gap-4">
+              <Link href="/student/quiz" className="bg-yellow-100 rounded-2xl p-5 text-center hover:bg-yellow-200 transition-colors active:scale-95 transform">
                 <div className="text-5xl mb-2">❓</div>
                 <p className="text-lg font-bold text-gray-800">Κουίζ</p>
-              </Link>
-              <Link href="/art" className="bg-pink-100 rounded-2xl p-5 text-center hover:bg-pink-200 transition-colors active:scale-95 transform">
-                <div className="text-5xl mb-2">🎨</div>
-                <p className="text-lg font-bold text-gray-800">Ζωγραφική</p>
               </Link>
             </div>
           </div>
@@ -285,38 +273,12 @@ export default function StudentDashboard() {
               <p className="text-lg font-bold text-white">Photo Helper</p>
             </Link>
             <Link
-              href="/mindfulness"
-              className="bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl p-6 text-center shadow-lg transform hover:scale-105 transition-transform"
-            >
-              <div className="text-5xl mb-2">🧘</div>
-              <p className="text-lg font-bold text-white">Χαλάρωση</p>
-            </Link>
-            <Link
-              href="/quiz"
+              href="/student/quiz"
               className="bg-gradient-to-br from-orange-500 to-pink-600 rounded-2xl p-6 text-center shadow-lg transform hover:scale-105 transition-transform"
             >
               <div className="text-5xl mb-2">❓</div>
               <p className="text-lg font-bold text-white">Κουίζ</p>
             </Link>
-          </div>
-
-          {/* Enrichment Section */}
-          <div className="bg-white rounded-2xl p-5 shadow-md mb-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">🌟 Μάθε κάτι νέο!</h2>
-            <div className="grid grid-cols-3 gap-3">
-              <Link href="/cs-ai" className="bg-blue-50 rounded-xl p-4 text-center hover:bg-blue-100 transition-colors">
-                <div className="text-4xl mb-2">💻</div>
-                <p className="text-sm font-medium text-gray-700">Coding</p>
-              </Link>
-              <Link href="/financial" className="bg-green-50 rounded-xl p-4 text-center hover:bg-green-100 transition-colors">
-                <div className="text-4xl mb-2">💰</div>
-                <p className="text-sm font-medium text-gray-700">Χρήματα</p>
-              </Link>
-              <Link href="/art" className="bg-pink-50 rounded-xl p-4 text-center hover:bg-pink-100 transition-colors">
-                <div className="text-4xl mb-2">🎨</div>
-                <p className="text-sm font-medium text-gray-700">Τέχνη</p>
-              </Link>
-            </div>
           </div>
 
           {/* Tip of the Day */}
@@ -340,9 +302,9 @@ export default function StudentDashboard() {
               <span className="text-2xl">🏠</span>
               <span className="text-xs font-medium mt-1">Αρχική</span>
             </Link>
-            <Link href="/enrichment" className="flex flex-col items-center text-gray-400 hover:text-teal-500">
-              <span className="text-2xl">🌟</span>
-              <span className="text-xs font-medium mt-1">Μάθηση</span>
+            <Link href="/tools" className="flex flex-col items-center text-gray-400 hover:text-teal-500">
+              <span className="text-2xl">🛠️</span>
+              <span className="text-xs font-medium mt-1">Εργαλεία</span>
             </Link>
             <Link href="/chat" className="flex flex-col items-center text-gray-400 hover:text-purple-500">
               <span className="text-2xl">💬</span>
@@ -406,12 +368,10 @@ export default function StudentDashboard() {
           {/* Quick Actions */}
           <div className="mb-6">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">⚡ Γρήγορες Ενέργειες</h2>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {[
                 { href: '/chat', icon: '💬', label: 'AI Βοηθός', color: 'bg-purple-500' },
                 { href: '/tools', icon: '📸', label: 'Photo Help', color: 'bg-blue-500' },
-                { href: '/mindfulness', icon: '🧘', label: 'Χαλάρωση', color: 'bg-green-500' },
-                { href: '/debate', icon: '🎭', label: 'Debate', color: 'bg-orange-500' },
               ].map((action) => (
                 <Link
                   key={action.href}
@@ -448,36 +408,11 @@ export default function StudentDashboard() {
                   <p className="font-medium text-gray-800">Συγχαρητήρια!</p>
                   <p className="text-sm text-gray-500">Έχεις ολοκληρώσει {stats.todayActivities} δραστηριότητ{stats.todayActivities === 1 ? 'α' : 'ες'}</p>
                 </div>
-                <Link href="/enrichment" className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600">
+                <Link href="/chat" className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600">
                   Συνέχισε
                 </Link>
               </div>
             )}
-          </div>
-
-          {/* Enrichment */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-sm font-semibold text-gray-700">🌟 Εμπλουτισμός</h2>
-              <Link href="/enrichment" className="text-indigo-600 text-sm font-medium hover:underline">Δες όλα →</Link>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { href: '/cs-ai', icon: '💻', title: 'Coding', subtitle: 'Block puzzles' },
-                { href: '/financial', icon: '💰', title: 'Οικονομικά', subtitle: 'Προϋπολογισμός' },
-                { href: '/philosophy', icon: '🤔', title: 'Φιλοσοφία', subtitle: 'Κριτική σκέψη' },
-              ].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all"
-                >
-                  <span className="text-2xl">{item.icon}</span>
-                  <p className="font-medium text-gray-800 mt-2 text-sm">{item.title}</p>
-                  <p className="text-xs text-gray-500">{item.subtitle}</p>
-                </Link>
-              ))}
-            </div>
           </div>
 
           {/* Daily Tip */}
@@ -501,9 +436,9 @@ export default function StudentDashboard() {
               <span className="text-xl">🏠</span>
               <span className="text-xs mt-1 font-medium">Αρχική</span>
             </Link>
-            <Link href="/enrichment" className="flex flex-col items-center px-3 py-1 text-gray-500 hover:text-indigo-500">
-              <span className="text-xl">🌟</span>
-              <span className="text-xs mt-1 font-medium">Μάθηση</span>
+            <Link href="/tools" className="flex flex-col items-center px-3 py-1 text-gray-500 hover:text-indigo-500">
+              <span className="text-xl">🛠️</span>
+              <span className="text-xs mt-1 font-medium">Εργαλεία</span>
             </Link>
             <Link href="/chat" className="flex flex-col items-center px-3 py-1 text-gray-500 hover:text-purple-500">
               <span className="text-xl">💬</span>
@@ -552,9 +487,6 @@ export default function StudentDashboard() {
                 <p className="text-sm opacity-90">Πανελλήνιες 2025</p>
                 <p className="text-2xl font-bold">~150 μέρες</p>
               </div>
-              <Link href="/study-plan" className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                Πρόγραμμα →
-              </Link>
             </div>
           </div>
         )}
@@ -586,8 +518,8 @@ export default function StudentDashboard() {
             {[
               { href: '/chat', icon: '💬', label: 'AI Καθηγητής', desc: 'Εξήγηση θεωρίας' },
               { href: '/tools', icon: '📸', label: 'Scan Άσκηση', desc: 'Λύση βήμα-βήμα' },
-              { href: '/notes', icon: '📝', label: 'Σημειώσεις', desc: 'Οργάνωση ύλης' },
-              { href: '/quiz', icon: '✍️', label: 'Τεστ', desc: 'Αυτοαξιολόγηση' },
+              { href: '/student/notes', icon: '📝', label: 'Σημειώσεις', desc: 'Οργάνωση ύλης' },
+              { href: '/student/quiz', icon: '✍️', label: 'Τεστ', desc: 'Αυτοαξιολόγηση' },
             ].map((tool) => (
               <Link
                 key={tool.href}
@@ -600,40 +532,6 @@ export default function StudentDashboard() {
               </Link>
             ))}
           </div>
-        </div>
-
-        {/* Subject Focus (for exam students) */}
-        {isLyceum3 && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">🎯 Μαθήματα Κατεύθυνσης</h2>
-            <div className="flex flex-wrap gap-2">
-              {['Μαθηματικά', 'Φυσική', 'Χημεία', 'Έκθεση'].map((subject) => (
-                <Link
-                  key={subject}
-                  href={`/subjects/${subject.toLowerCase()}`}
-                  className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
-                >
-                  {subject}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <Link href="/mindfulness" className="bg-green-50 rounded-xl p-4 text-center hover:bg-green-100 transition-colors">
-            <div className="text-2xl mb-1">🧘</div>
-            <p className="text-sm font-medium text-green-700">Διάλειμμα</p>
-          </Link>
-          <Link href="/debate" className="bg-orange-50 rounded-xl p-4 text-center hover:bg-orange-100 transition-colors">
-            <div className="text-2xl mb-1">🎭</div>
-            <p className="text-sm font-medium text-orange-700">Debate</p>
-          </Link>
-          <Link href="/philosophy" className="bg-purple-50 rounded-xl p-4 text-center hover:bg-purple-100 transition-colors">
-            <div className="text-2xl mb-1">🤔</div>
-            <p className="text-sm font-medium text-purple-700">Φιλοσοφία</p>
-          </Link>
         </div>
 
         {/* Tip - More Academic */}
@@ -657,9 +555,9 @@ export default function StudentDashboard() {
             <span className="text-xl">🏠</span>
             <span className="text-xs mt-1 font-medium">Αρχική</span>
           </Link>
-          <Link href="/subjects" className="flex flex-col items-center px-3 py-1 text-gray-500 hover:text-blue-500">
-            <span className="text-xl">📚</span>
-            <span className="text-xs mt-1 font-medium">Μαθήματα</span>
+          <Link href="/tools" className="flex flex-col items-center px-3 py-1 text-gray-500 hover:text-blue-500">
+            <span className="text-xl">🛠️</span>
+            <span className="text-xs mt-1 font-medium">Εργαλεία</span>
           </Link>
           <Link href="/chat" className="flex flex-col items-center px-3 py-1 text-gray-500 hover:text-purple-500">
             <span className="text-xl">💬</span>

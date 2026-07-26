@@ -873,7 +873,7 @@ export default function ChatTutorPage() {
         <div className="flex justify-around py-2">
           {[
             { href: '/student', icon: '🏠', label: 'Αρχική', active: false },
-            { href: '/enrichment', icon: '🌟', label: 'Μάθηση', active: false },
+            { href: '/tools', icon: '🛠️', label: 'Εργαλεία', active: false },
             { href: '/chat', icon: '🤖', label: 'AI', active: true },
             { href: '/profile', icon: '👤', label: 'Προφίλ', active: false },
           ].map((item) => (

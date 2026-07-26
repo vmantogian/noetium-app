@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { features, featureDisabledResponse } from '@/lib/features';
 
 export async function POST(request: NextRequest) {
+  if (!features.debate) return featureDisabledResponse();
+
   try {
     const body = await request.json();
     const { config, messages, difficulty } = body;

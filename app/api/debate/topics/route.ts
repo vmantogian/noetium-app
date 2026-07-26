@@ -1,9 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { features, featureDisabledResponse } from '@/lib/features';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  if (!features.debate) return featureDisabledResponse();
+
   try {
     const supabase = await createClient();
     
@@ -43,6 +46,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!features.debate) return featureDisabledResponse();
+
   try {
     const supabase = await createClient();
     

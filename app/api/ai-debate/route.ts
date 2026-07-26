@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { features, featureDisabledResponse } from '@/lib/features';
 
 // Difficulty-specific system prompts
 const DIFFICULTY_PROMPTS: Record<string, string> = {
@@ -41,6 +42,8 @@ const DIFFICULTY_PROMPTS: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
+  if (!features.debate) return featureDisabledResponse();
+
   try {
     const body = await request.json();
     const { config, messages, currentRound, argumentType, difficulty } = body;

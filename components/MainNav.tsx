@@ -20,20 +20,6 @@ const navItems: NavItem[] = [
     icon: '🏠'
   },
   {
-    href: '/enrichment',
-    label: 'Enrichment',
-    labelEl: 'Εμπλουτισμός',
-    icon: '🌟',
-    children: [
-      { href: '/debate', label: 'Debate', labelEl: 'Debate', icon: '🎭' },
-      { href: '/mindfulness', label: 'Mindfulness', labelEl: 'Ενσυνειδητότητα', icon: '🧘' },
-      { href: '/portfolio', label: 'Portfolio', labelEl: 'Portfolio', icon: '📁' },
-      { href: '/cs-ai', label: 'CS & AI', labelEl: 'Πληροφορική & AI', icon: '💻' },
-      { href: '/financial', label: 'Financial', labelEl: 'Οικονομικά', icon: '💰' },
-      { href: '/art', label: 'Art', labelEl: 'Τέχνη', icon: '🎨' },
-    ]
-  },
-  {
     href: '/tools',
     label: 'Tools',
     labelEl: 'Εργαλεία',
@@ -50,7 +36,7 @@ const navItems: NavItem[] = [
 // Desktop Sidebar Navigation
 export function SidebarNav() {
   const pathname = usePathname();
-  const [expandedItems, setExpandedItems] = useState<string[]>(['/enrichment']);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const toggleExpand = (href: string) => {
     setExpandedItems(prev => 
@@ -155,18 +141,13 @@ export function BottomNav() {
 
   const mobileItems = [
     { href: '/student', label: 'Αρχική', icon: '🏠' },
-    { href: '/enrichment', label: 'Μάθηση', icon: '🌟' },
+    { href: '/tools', label: 'Εργαλεία', icon: '🛠️' },
     { href: '/chat', label: 'AI', icon: '🤖' },
     { href: '/profile', label: 'Προφίλ', icon: '👤' },
   ];
 
   const isActive = (href: string) => {
     if (href === '/student') return pathname === '/student' || pathname === '/';
-    if (href === '/enrichment') {
-      return ['/enrichment', '/debate', '/mindfulness', '/portfolio', '/cs-ai', '/financial', '/art'].some(
-        p => pathname.startsWith(p)
-      );
-    }
     return pathname.startsWith(href);
   };
 

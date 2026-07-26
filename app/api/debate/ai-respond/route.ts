@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { features, featureDisabledResponse } from '@/lib/features';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -9,6 +10,8 @@ const anthropic = new Anthropic({
 type Difficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
 export async function POST(request: NextRequest) {
+  if (!features.debate) return featureDisabledResponse();
+
   try {
     const supabase = await createClient();
     

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { features, featureDisabledResponse } from '@/lib/features';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +9,8 @@ const supabase = createClient(
 
 // POST - Request match or join debate
 export async function POST(request: NextRequest) {
+  if (!features.debate) return featureDisabledResponse();
+
   try {
     const body = await request.json();
     const { userId, topicId, preferredFormat, preferredSide, gradeLevel } = body;
@@ -148,6 +151,8 @@ export async function POST(request: NextRequest) {
 
 // DELETE - Cancel match request
 export async function DELETE(request: NextRequest) {
+  if (!features.debate) return featureDisabledResponse();
+
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { features, featureDisabledResponse } from '@/lib/features';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +9,8 @@ const supabase = createClient(
 
 // GET - Get debate topics
 export async function GET(request: NextRequest) {
+  if (!features.debate) return featureDisabledResponse();
+
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
@@ -54,6 +57,8 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new topic (admin only)
 export async function POST(request: NextRequest) {
+  if (!features.debate) return featureDisabledResponse();
+
   try {
     const body = await request.json();
     const { 
