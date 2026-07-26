@@ -10,10 +10,37 @@ import { NextRequest, NextResponse } from 'next/server';
  * 3. Redirects to onboarding if not completed, or dashboard if done
  */
 
+/**
+ * Behind Vercel's proxy, request.url can carry the internal deployment host
+ * and/or an http:// protocol (TLS is terminated at the edge). Redirecting to
+ * an http:// origin breaks Secure session cookies, which surfaces as the
+ * classic "login succeeds, then bounces back to /login" loop.
+ * Always derive the public origin from the forwarded headers.
+ */
+function getOrigin(request: NextRequest): string {
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https';
+  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  }
+  return new URL(request.url).origin;
+}
+
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const origin = getOrigin(request);
   const code = searchParams.get('code');
-  const role = searchParams.get('role'); // Role passed from your signup page
+  const role = searchParams.get('role');
+
+  // The login page sends ?redirect=... but it was previously dropped, so a user
+  // bounced to /login from a deep link always landed on the dashboard instead.
+  // Only relative paths are honoured, to avoid an open redirect.
+  const redirectParam = searchParams.get('redirect');
+  const safeRedirect =
+    redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')
+      ? redirectParam
+      : null; // Role passed from your signup page
 
   if (code) {
     const supabase = await createClient();
@@ -85,7 +112,8 @@ export async function GET(request: NextRequest) {
         // Redirect based on onboarding status
         if (existingProfile.onboarding_completed) {
           // Already onboarded - go to appropriate dashboard
-          const dashboardRoute = getDashboardRoute(existingProfile.user_type || userRole);
+          const dashboardRoute =
+            safeRedirect || getDashboardRoute(existingProfile.user_type || userRole);
           return NextResponse.redirect(`${origin}${dashboardRoute}`);
         } else {
           // Need onboarding
